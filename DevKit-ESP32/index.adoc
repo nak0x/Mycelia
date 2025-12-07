@@ -7,7 +7,7 @@ Tooling et doc + links pour dev sur esp32 depuis un mac silicon.
 == IDE Dev kit
 
 J'ai pas d'IDE pour dev surtout en bas niveau. Flemme.
-Mais il y a xref:https://platformio.org/install/ide?install=vscode[PlatformIO] pour VSCode.
+Mais il y a xref:https://platformio.org/install/ide[PlatformIO] pour VSCode.
 
 [native]
 == Native CLI
