@@ -1,0 +1,39 @@
+= Mycelia
+
+----
+Mycelia is a school project made for the winter project of the ECNI1-25/26.
+----
+
+This repos is a monolith repository, the concept is that we should only have folders and git related files
+at the root of the projet.
+
+Heach folder represent a part of the projet.
+
+For this project we are 3 devs, build 3 small part of the experience.
+
+== Project structure
+
+[,shell]
+----
+📁 project-root/
+├── 🔁 iteration-1/
+│   ├── 🖥️ server/
+│   ├── 📡 iot/
+│   ├── ⚙️ core/
+│   ├── 🧪 tests/
+│   └── 📚 docs/
+│
+├── 🔁 iteration-2/
+│   ├── 🖥️ server/
+│   ├── 📡 iot/
+│   ├── ⚙️ core/
+│   ├── 🧪 tests/
+│   └── 📚 docs/
+│
+├── 🔁 iteration-3/
+│   ├── 🖥️ server/
+│   ├── 📡 iot/
+│   ├── ⚙️ core/
+│   ├── 🧪 tests/
+    └── 📚 docs/
+----
