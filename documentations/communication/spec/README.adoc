@@ -1,0 +1,255 @@
+= 🪴 JSON Specification
+
+WARNING: This specification is prone to change during the development of this project.
+
+The idea behing this specification is to have a fairly generic `json` that can be used
+throughout the project without needing too much of an effort to options to it.
+
+The main idea is to always bring the metadata of the communication so when debuging and
+writing excpectation, we can easly know to source, the destination, the timestamp, and
+connection status. Those metadata MUST be used to identify and assert that the communication
+is valid and managable by the receiver.
+
+With that we can develop our systems, by considering them as black boxes, with one
+input and one output. Inputs will **ONLY** accept the specified `json` as entry type.
+Any system **MUST** output it's data using this `json` spec.
+
+== Basic JSON
+
+This is an exemple of an `Update` json.
+
+[,json]
+----
+{
+  "metadata": {
+     "senderId": "ESP32-0E990F",
+     "timestamp": 1678886400,
+     "messageId": "MSG-20230315-0001",
+     "type": "up",
+     "receiverId": "IPHONE-AE490F",
+     "status": {
+         "connection": 200,
+      }
+  },
+  "payload": [
+    {
+      "datatype": "string",
+      "value": "UwU",
+			"slug": "a_target_value"
+    }
+  ]
+}
+----
+
+== 🗃️ Enums
+
+This `json` uses a few Enums key as values.
+
+- `metadata.type` **Type**
+- `metadata.status.connection` **Connection**
+- `payload[idx].datatype` **Datatype**
+
+=== 📄 Datatype
+
+All the value types.
+
+==== Values
+
+[cols="1,1,1", options="header"]
+|===
+| Name | Slug | Description
+
+| Int
+| `int`
+| An integer.
+
+| Float
+| `float`
+| A floating point number.
+
+| Char
+| `char`
+| A single characters.
+
+| String
+| `string`
+| A freaking string.
+
+| Int Array
+| `iarray`
+| An array or list of int.
+
+| Float Array
+| `farray`
+| An array or list of float.
+
+| Char Array
+| `carray`
+| An array of characters. (Pls do not use it for string or else the devil is going to sue you)
+
+| String Array
+| `sarray`
+| An array of strings. (Dont be silly over there. You have to be 21+)
+
+| Enum
+| `enum`
+| A value of an enum. Might throw an `UnexpectedValue` throw a `422` response.
+
+|===
+
+=== 📄 Type
+
+The type is the communication type.
+
+==== Values
+
+[cols="1,1,1", options="header"]
+|===
+| Name | Slug | Description
+
+| Ping
+| `ping`
+| **MUST ONLY** be used to check if a devices is accesible.
+
+| WebSocket Start
+| `ws-start`
+| Used when willing to start a websocket sessions. Serve to check if the devices is ok with it. **CONSENT >w<**
+
+| WebSocket Stoped
+| `ws-stop`
+| Used when a WebSocket connection has ended, the goal is to ask if it's normal or to validate the end.
+
+| WebSocket Status
+| `ws-status`
+| Used when communicating the status of a WS connection.
+
+| WebSocket data
+| `ws-data`
+| Used to send data over websocket. It serve as a generic.
+
+| Sensor Value
+| `sr-r-value`
+| Used when sending the **RAW** value of a sensor.
+
+| Single Value
+| `sr-u-value`
+| Used when sending **only one** value.
+
+| Multi Value
+| `sr-u-value`
+| Used when sending **at least one** value. Must be treated like the payload will have more than one entry.
+
+| Update
+| `up`
+| Used to send an update of an already sent value.
+|===
+
+=== 📄 Connection
+
+The connection is the status of a connection.
+It follow the HTTP codes.
+
+Below is a non exaustive list of common one that we will use.
+
+==== Values
+
+[cols="1,1,1", options="header"]
+|===
+| Name | Slug | Description
+
+| OK
+| `200`
+| The connection/request is doing just fine :)
+
+| Created
+| `201`
+| The request/connection as result in the creation of a new ressource.
+
+| Accepted
+| `202`
+| The request/connection has been accepted but started a async processing.
+
+| No Content
+| `204`
+| The `payload` key is empty.
+
+| This is fine
+| `218`
+| The payload has been treated or has to be treated without validation. (usefull for the remote controller ^^)
+
+| Bad request
+| `400`
+| The request/connection is bad. Either the data send is not usable or not validated.
+
+| Forbidden
+| `403`
+| The receiver dont allow this connection.
+
+| Not Found
+| `404`
+| Well.. a 404.
+
+| Unprocessable content
+| `422`
+| Need to be used when the receiver cannot used the payload content.
+
+| Too early
+| `425`
+| Used with the sequence server to signify that the request has been made to early and need to be retry in 600ms. Max retry 100 (1min).
+
+| Too late - (Does not exist in HTTP but we need it)
+| `461`
+| Used with the sequence server to signify that the request has been made to late or that the experience has skip the step. Do not retry.
+
+| Internal Error
+| `500`
+| An error happen during processing.
+
+| Not Implemented
+| `501`
+| We have to put our ass down and work harder.
+
+|===
+
+== 🎭 Sender / Reveiver naming convention
+
+To have a simple naming convention for devices that is readable and visible,
+we must use :
+
+----
+<DEVICE TYPE>-<HEX Color code>
+----
+
+The HEX Color code can be use in GUIs and serve as an 8bit id. Witch is small af but sufficient and can really be pretty and usefull.
+The device type is a human readable devices type.
+
+=== Device type list :
+
+
+[cols="1,1", options="header"]
+|===
+
+| Name | Description
+
+| `ESP32`
+| Any esp32 no matter what type of esp32.
+
+| `RVR`
+| The rover. s/ ^^'
+
+| `SPHERO`
+| A sphero
+
+| `IPHONE`
+| An iphone
+
+| `SERVER`
+| A server (macbook, or anything that is not a "portable" devices)
+
+| `ARD`
+| An arduino
+
+| `STM32`
+| I dunno why we would need this but an stm32.
+
+|===
