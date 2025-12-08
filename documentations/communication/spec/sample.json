@@ -1,0 +1,24 @@
+{
+  "metadata": {
+     "senderId": "ESP32-0E990F",
+     "timestamp": 1678886400,
+     "messageId": "MSG-20230315-0001",
+     "type": "up",
+     "receiverId": "IPHONE-AE490F",
+     "status": {
+         "connection": 200
+      }
+  },
+  "payload": [
+    {
+      "datatype": "string",
+      "value": "UwU",
+      "slug": "a_target_value"
+    },
+    {
+      "datatype": "string",
+      "value": "UwU",
+      "slug": "another_target_value"
+    }
+  ]
+}

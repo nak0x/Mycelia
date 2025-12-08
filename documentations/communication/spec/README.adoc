@@ -28,7 +28,7 @@ This is an exemple of an `Update` json.
      "type": "up",
      "receiverId": "IPHONE-AE490F",
      "status": {
-         "connection": 200,
+         "connection": 200
       }
   },
   "payload": [
