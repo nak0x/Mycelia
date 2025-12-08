@@ -1,0 +1,8 @@
+= 📚 Mycelia - Documentation
+
+WARNING: This documentatin is not - and will never - be completed nor done correctly. Excpect typos, errors, emptiness. :)
+
+== Navigation
+
+- xref:communication/README.adoc[Communication]
+- xref:communication/spec/README.adoc[JSON Spec]
