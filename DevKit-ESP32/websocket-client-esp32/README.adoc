@@ -1,0 +1,90 @@
+= project template for esp32 c++
+
+this serves as a small project template that works with esp_idf build and flash. you can copy the directory, where ever you need.
+you then need to replace all the mention of `project-template` with your project name / app name / service name whatever.
+
+it come with a pretty make file that can be use alongside envrionnement variables to build/clean/setup/monitor/flash
+the app.
+
+== Make commands documentations
+
+=== Build workflow
+
+This project template includes a `Makefile` that wraps common `idf.py` commands, making the workflow shorter and more consistent.  
+All commands can optionally take environment variables such as `PORT` or `BAUD`:
+
+----
+make PORT=/dev/tty.usbserial-0001 BAUD=921600 flash
+----
+
+If not provided, defaults from the `Makefile` are used.
+
+=== Commands
+
+==== `make config`
+Initializes the ESP-IDF target for this project:
+
+----
+idf.py set-target esp32
+----
+
+This generates (or regenerates) the `sdkconfig` file for ESP32.
+
+----
+
+==== `make all`
+Builds the entire project:
+
+----
+idf.py build
+----
+
+This compiles the application, bootloader, partition table and produces the final firmware binaries.
+
+----
+
+==== `make flash`
+Flashes the compiled firmware to the board:
+
+----
+idf.py -p $PORT -b $BAUD flash
+----
+
+- `PORT` sets the serial device (default: `/dev/cu.usbserial-0001`)
+- `BAUD` sets the upload baudrate (default: `115200`)
+
+----
+
+==== `make monitor`
+Opens a serial monitor connected to the device:
+
+----
+idf.py -p $PORT monitor
+----
+
+This displays the runtime logs produced by the application.  
+Exit with `Ctrl+]` then `q`.
+
+----
+
+==== `make flash-monitor`
+Flashes the firmware and immediately attaches the serial monitor:
+
+----
+idf.py -p $PORT flash monitor
+----
+
+Useful when iterating quickly during development.
+
+----
+
+==== `make clean`
+Removes the build directory:
+
+----
+idf.py clean
+----
+
+This forces a full recompilation on the next `make all`.
+
+

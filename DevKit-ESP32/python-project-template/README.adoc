@@ -1,0 +1,80 @@
+= MicroPython setup and project template
+
+There is many way to use micro python. My favorite one is using mpremote and esptool.
+This setup allow cli only approach. Ensuring that we will not depend on a messy
+electron app or any Guis infected sofwear.
+
+== Install tools
+
+[,shell]
+----
+pip install --user --break-system-packages esptool mpremote
+----
+
+WARNING: The `--break-system-packages` is only here to tell pip that is ok to install program that will be expose in the users $PATH.
+
+== Flash the MicroPython firmware onto the ESP32
+
+At the root of the DevKit I provide the latest (09/12/2025) version of the firmware
+for WROOM / WROVER boards.
+
+[,shell]
+----
+# Erase the current flash
+esptool erase_flash
+
+# Flash MicroPython
+esptool --chip esp32 --baud 460800 write_flash 0x1000 ../ESP32_GENERIC-20250911-v1.26.1.bin
+----
+
+Then press EN/RESET on the board.
+
+== MpRemote usage
+
+`mpremote` auto-detects the board in most cases.
+
+=== Connect to the esp32 and open a REPL (Interactiv Shell) session
+[,shell]
+----
+mpremote
+----
+
+=== File management with `mpremote`
+
+[,shell]
+----
+# ls the esp32 fd
+mpremote ls
+
+# Copy a file
+mpremote cp file.py :
+# `:` means "current directory"
+mpremote cp file.py :/file.py
+# Explicitly declare the path
+
+# Copy a file from the board
+mpremote cp :file.py .
+
+# Remove a file
+mpremote rm file.py
+----
+
+=== Run code without saving
+
+[,shell]
+----
+mpremote run myscript.py
+----
+
+=== Deplor a script (auto-run on boot)
+
+[,shell]
+----
+# Send the script to fs
+mpremote cp main.py :main.py
+
+# Reset the board
+mpremote reset
+----
+
+WARNING: Note that the scipts has to be main.py
