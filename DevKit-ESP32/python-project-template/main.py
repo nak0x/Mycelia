@@ -1,8 +1,4 @@
-import time
+from src.app import App
 
-tick = 0
-
-while True:
-    tick += 1
-    print(f"Tick: {tick}")
-    time.sleep(1)
+app = App()
+app.run()
