@@ -37,5 +37,5 @@ class Config:
 
     def setup_pins(self):
         pins = self._data["pins"]
-        pins["LED"] = Pin(GPIO.LED, Pin.OUT, Pin.PULL_UP)
-        pins["BUTTON"] = Pin(GPIO.GPIO4, Pin.IN, Pin.PULL_DOWN)
+        pins["led"] = Pin(GPIO.LED, Pin.OUT, Pin.PULL_UP)
+        pins["button"] = Pin(GPIO.GPIO4, Pin.IN, Pin.PULL_DOWN)

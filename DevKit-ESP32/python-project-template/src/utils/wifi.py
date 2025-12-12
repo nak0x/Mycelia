@@ -1,5 +1,4 @@
 import network
-import machine
 from src.app import App
 
 class WifiManager:
@@ -31,5 +30,5 @@ class WifiManager:
             print('Connecting to network...')
             wlan.connect(self._config["ssid"], self._config["password"])
             while not wlan.isconnected():
-                machine.idle()
+                App().idle()
         print('Network config:', wlan.ipconfig('addr4'))
