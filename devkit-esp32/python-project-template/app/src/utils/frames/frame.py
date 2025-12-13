@@ -4,14 +4,21 @@ class Frame:
     """
     def __init__(self, metadata, payloads):
         self.metadata = Metadata(
-            sender_id=metadata["sender_id"],
-            receiver_id=metadata["receiver_id"],
+            sender_id=metadata["senderId"],
+            receiver_id=metadata["receiverId"],
             timestamp=metadata["timestamp"],
-            message_id=metadata["message_id"],
+            message_id=metadata["messageId"],
             type=metadata["type"],
             status=metadata["status"],
         )
         self.payloads = PayloadList(payloads)
+
+    def __str__(self):
+        return f"""
+
+metadata: {self.metadata}
+payload: {self.payloads}
+"""
 
 class Metadata:
     """
@@ -25,18 +32,33 @@ class Metadata:
         self.receiver_id = receiver_id
         self.status = status
 
+    def __str__(self):
+        return f"""
+    sender: {self.sender_id}
+    timestamp: {self.timestamp}
+    message_id: {self.message_id}
+    type: {self.type}
+    receiver: {self.receiver_id}"""
+
+
 class PayloadList:
     """
     Payload list. Can be used like any other list.
     """
     def __init__(self, payloads):
-        self.payloads = [
+        self._payloads = [
             Payload(
                 datatype=payload["datatype"],
                 value=payload["value"],
                 slug=payload["slug"]
             ) for payload in payloads
         ]
+
+    def __str__(self):
+        str = ""
+        for payload in self:
+            str += f"{payload}"
+        return str
 
     def __iter__(self):
         return iter(self._payloads)
@@ -61,3 +83,9 @@ class Payload:
         self.datatype = datatype
         self.value = value
         self.slug = slug
+
+    def __str__(self):
+        return f"""
+    datatype: {self.datatype}
+    value: {self.value}
+    slug: {self.slug}"""

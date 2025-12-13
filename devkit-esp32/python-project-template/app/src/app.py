@@ -41,7 +41,12 @@ class App(SingletonBase):
 
     def run(self):
         for setup in self.setup:
-            setup()
+            try:
+                setup()
+            except RuntimeError as e:
+                print(f"An error occured while setting up the app: {e}")
+                continue
+
         self.state = AppState.RUNNING
         while not self.shutdown_request:
             gc.collect()

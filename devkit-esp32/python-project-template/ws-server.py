@@ -30,7 +30,22 @@ async def handler(websocket):
     try:
         async for message in websocket:
             print(f"{datetime.now()}: {message}")
-            await websocket.send(f"Echo: {message}")
+            await websocket.send(f"""{{
+            "metadata": {{
+                "senderId": "ESP32-0E990F",
+                "timestamp": 1678886400,
+                "messageId": "MSG-20230315-0001",
+                "type": "up",
+                "receiverId": "IPHONE-AE490F",
+                "status": {{
+                    "connection": 200
+                }}
+            }},
+            "payload": [{{
+                "datatype": "string",
+                "value": "{message}",
+                "slug": "a_target_value"
+            }}]}}""")
     except Exception as ex:
         print("Connection is closed.")
 
