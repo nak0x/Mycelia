@@ -63,13 +63,13 @@ All the value types.
 | `int`
 | An integer.
 
+| Bool
+| `bool`
+| Boolean field.
+
 | Float
 | `float`
 | A floating point number.
-
-| Char
-| `char`
-| A single characters.
 
 | String
 | `string`
