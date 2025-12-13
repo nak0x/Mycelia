@@ -91,6 +91,14 @@ All the value types.
 | `sarray`
 | An array of strings. (Dont be silly over there. You have to be 21+)
 
+| Dict
+| `dict`
+| A named list
+
+| Object
+| `object`
+| A JSON object
+
 | Enum
 | `enum`
 | A value of an enum. Might throw an `UnexpectedValue` throw a `422` response.
