@@ -40,6 +40,8 @@ App().shutdown.append()
 App().on_frame_received.append()
 ----
 
+See an exemple here xref:https://github.com/nak0x/Mycelia/blob/main/devkit-esp32/python-project-template/app/src/led_on_ws.py[led_on_ws.py]
+
 == The config
 
 The configurations is loaded from a `config.json` file that has to be on the same level as `main.py`.
