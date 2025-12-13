@@ -22,7 +22,7 @@ class WifiManager:
 
     def _update(self):
         if not self.wlan.isconnected():
-            App().config.pins["led"].off()
+            App().config.pins["builtin-led"].off()
             print(f"Wifi connection lost. Trying to reconnect...")
             self._connect()
 
@@ -37,7 +37,7 @@ class WifiManager:
         self._connect()
 
     def _connect(self):
-        App().config.pins["led"].off()
+        App().config.pins["builtin-led"].off()
         self.wlan = network.WLAN()
         self.wlan.active(True)
         if not self.wlan.isconnected():
@@ -49,5 +49,5 @@ class WifiManager:
                     raise RuntimeError("Timeout while connecting to network")
                 App().idle()
         # Light the builtin led when wifi is connected
-        App().config.pins["led"].on()
+        App().config.pins["builtin-led"].on()
         print('Network config:', self.wlan.ipconfig('addr4'))

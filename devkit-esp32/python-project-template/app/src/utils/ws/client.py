@@ -36,7 +36,9 @@ class WebsocketClient():
         if self.CONNECTED:
             try:
                 self.ws.send("up")
-                FrameParser(self.ws.recv())
+                frame = FrameParser(self.ws.recv()).parse()
+                print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
+                App().send_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")
                 self.close(not self.RECONNECT)

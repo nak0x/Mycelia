@@ -11,13 +11,13 @@ class Frame:
             type=metadata["type"],
             status=metadata["status"],
         )
-        self.payloads = PayloadList(payloads)
+        self.payload = PayloadList(payloads)
 
     def __str__(self):
         return f"""
 
 metadata: {self.metadata}
-payload: {self.payloads}
+payload: {self.payload}
 """
 
 class Metadata:
@@ -34,11 +34,11 @@ class Metadata:
 
     def __str__(self):
         return f"""
-    sender: {self.sender_id}
+    sender_id: {self.sender_id}
     timestamp: {self.timestamp}
     message_id: {self.message_id}
     type: {self.type}
-    receiver: {self.receiver_id}"""
+    receiver_id: {self.receiver_id}"""
 
 
 class PayloadList:

@@ -18,8 +18,6 @@ class FrameParser:
         except Exception as e:
             raise RuntimeError(f"FrameParser: Cannot validate frame. Reason: {e}")
 
-        self.parse()
-
     def load(self, raw_frame):
         return json.loads(raw_frame)
 
@@ -81,6 +79,7 @@ class FrameParser:
             metadata=self.frame["metadata"],
             payloads=self.frame["payload"]
         )
+        return self.frame
 
     def __str__(self):
         return f"Frame: {self.frame}"

@@ -20,6 +20,7 @@ class App(SingletonBase):
     setup = []
     update = []
     shutdown = []
+    on_frame_received = []
 
     # Constants
     SLOWED = True
@@ -61,3 +62,9 @@ class App(SingletonBase):
             self.state = AppState.SHUTDOWN
             for shutdown in self.shutdown:
                 shutdown()
+
+    def send_frame(self, frame):
+        # Discard frame that we dont care
+        if frame.metadata.receiver_id == self.config.device_id:
+            for hooks in self.on_frame_received:
+                hooks(frame)

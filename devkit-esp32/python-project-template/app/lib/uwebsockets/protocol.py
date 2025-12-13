@@ -203,7 +203,6 @@ class Websocket:
                 continue
             elif opcode == OP_PING:
                 # We need to send a pong frame
-                if __debug__: print("Sending PONG")
                 self.write_frame(OP_PONG, data)
                 # And then wait to receive
                 continue

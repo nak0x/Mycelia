@@ -9,8 +9,8 @@ class Config:
         self.setup_pins()
 
     def setup_pins(self):
-        self.pins["led"] = Pin(GPIO.LED, Pin.OUT, Pin.PULL_DOWN)
-        self.pins["button"] = Pin(GPIO.GPIO4, Pin.IN, Pin.PULL_DOWN)
+        self.pins["builtin-led"] = Pin(GPIO.LED, Pin.OUT, Pin.PULL_DOWN)
+        self.pins["led"] = Pin(GPIO.GPIO4, Pin.OUT, Pin.PULL_DOWN)
 
     def load_from_file(self, filepath):
         print("Trying to load config ...")

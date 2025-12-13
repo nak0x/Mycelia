@@ -31,7 +31,6 @@ def connect(uri):
     sock.connect(addr[0][4])
 
     def send_header(header, *args):
-        print(str(header), *args)
         sock.write(header % args + '\r\n')
 
     # Sec-WebSocket-Key is 16 bytes of random base64 encoded
@@ -56,7 +55,6 @@ def connect(uri):
     # We don't (currently) need these headers
     # FIXME: should we check the return key?
     while header:
-        print(str(header))
         header = sock.readline()[:-2]
 
     return WebsocketClient(sock)
