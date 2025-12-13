@@ -45,6 +45,11 @@ class WifiManager:
             self.wlan.connect(self._config["ssid"], self._config["password"])
             t0 = time.ticks_ms()
             while not self.wlan.isconnected():
+                if time.ticks_diff(time.ticks_ms(), t0) > App().config.wifi.timeout:
+                    raise RuntimeError("Timeout while connecting to network")
+            self.wlan.connect(self._config["ssid"], self._config["password"])
+            t0 = time.ticks_ms()
+            while not self.wlan.isconnected():
                 if time.ticks_diff(time.ticks_ms(), t0) > App().config.wifi["timeout"]:
                     raise RuntimeError("Timeout while connecting to network")
                 App().idle()

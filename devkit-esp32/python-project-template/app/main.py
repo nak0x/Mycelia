@@ -11,7 +11,7 @@ run_integrity_checks()
 app = App()
 
 wifi_manager = WifiManager()
-wifi_manager.config(ssid=app.config.wifi["SSID"], password=app.config.wifi["password"])
+wifi_manager.config(ssid=app.config.wifi.SSID, password=app.config.wifi.password)
 
 ws_client = WebsocketInterface()
 

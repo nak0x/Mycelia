@@ -3,8 +3,8 @@ import gc
 
 from time import ticks_cpu, sleep
 
-from src.settings import Config
-from src.utils.abstract_singleton import SingletonBase
+from .config import Config
+from .utils.abstract_singleton import SingletonBase
 
 
 class AppState:
@@ -45,9 +45,9 @@ class App(SingletonBase):
             try:
                 setup()
             except RuntimeError as e:
-                print(f"An error occured while setting up the app: {e}")
+                print(f"An error occurred while setting up the app: {e}")
                 continue
-
+              
         self.state = AppState.RUNNING
         while not self.shutdown_request:
             gc.collect()

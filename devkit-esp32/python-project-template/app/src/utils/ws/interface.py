@@ -13,12 +13,12 @@ class WebsocketInterface():
     def __init__(self):
         App().update.append(self.update)
         App().setup.append(self.connect)
-        self.RECONNECT = App().config.ws_reconnect
+        self.RECONNECT = App().config.websocket.reconnect
 
     def connect(self):
         print("Websocket connecting ...")
         try:
-            self.ws = ws_connect(App().config.ws_server)
+            self.ws = ws_connect(App().config.websocket.server)
         except Exception as e:
             print(f"An error occured while connecting websocket: {e}")
             return
