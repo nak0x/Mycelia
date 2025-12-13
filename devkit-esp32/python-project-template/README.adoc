@@ -1,10 +1,85 @@
-= MicroPython setup and project template
+= Template usage & documentation
+
+WARNING: This template is usable but will have 2 more dev on it before being ready. Theses devs will transform the way this template will be used. And greatly increase it's capabilities.
+
+I've built a fairly simple to use setup. In normal conditions, there is no reason to add or modify code inside
+`src.utils` it's basically the framework core. It's the same for the `app.py` there should be no need of adding
+code or modifying code inside.
+
+== The app loop & events
+The framework use an event loop with callbacks. To add any logic or behaviour for the esp32, the best praticies
+is to append a callback inside one of the events.
+
+To do so you will need to import the `App` class.
+[,py]
+----
+from src.app import App
+----
+
+And there is a few events you can subscribe to.
+
+- `setup` Run once - use it to setup data
+[,py]
+----
+App().setup.append()
+----
+- `update` Run every cpu tick
+[,py]
+----
+App().update.append()
+----
+- `shutdown` Run when shutdown have been trigger. Can be used to close sockets or free data
+[,py]
+----
+App().shutdown.append()
+----
+
+- `on_frame_received` The MOST important one this is called when a frame is received from websocket. It will call any methods with a `frame` arguments containing the parsed `src.utils.frames.frame.Frame`
+[,py]
+----
+App().on_frame_received.append()
+----
+
+See an exemple here xref:https://github.com/nak0x/Mycelia/blob/main/devkit-esp32/python-project-template/app/src/led_on_ws.py[led_on_ws.py]
+
+== The config
+
+The configurations is loaded from a `config.json` file that has to be on the same level as `main.py`.
+It will be loaded and be accessible with `App().config`.
+
+There is a `config.sample.json` that contains all the currently supported settings that can be copied to configure the esp32.
+
+See: xref:config.adoc[Configuration doc]
+
+== Usage
+
+=== Easy mode
+To use this template you can simply run in a zsh shell :
+[,shell]
+----
+make run app/*
+----
+
+This require `mpremote` & `make`. See below for `make` and `mpremote` usage.
+
+This command will clean the content of the esp32, copy the app onto it, and run it. You will be attached to a `mpremote` session to directly see the output of the esp32 booting and app setup.
+
+There is also the `make deploy` that only deploy the app onto the esp32. And the `make start` that restart the app.
+
+=== Manual mode
+
+Copy all the content of the `app` folder at the root of the esp32. Then reset the esp.
+
+
+
+
+== MicroPython setup
 
 There is many way to use micro python. My favorite one is using mpremote and esptool.
 This setup allow cli only approach. Ensuring that we will not depend on a messy
 electron app or any Guis infected sofwear.
 
-== Install tools
+=== Install tools
 
 [,shell]
 ----
@@ -29,17 +104,17 @@ esptool --chip esp32 --baud 460800 write_flash 0x1000 ../ESP32_GENERIC-20250911-
 
 Then press EN/RESET on the board.
 
-== MpRemote usage
+=== MpRemote usage
 
 `mpremote` auto-detects the board in most cases.
 
-=== Connect to the esp32 and open a REPL (Interactiv Shell) session
+==== Connect to the esp32 and open a REPL (Interactiv Shell) session
 [,shell]
 ----
 mpremote
 ----
 
-=== File management with `mpremote`
+==== File management with `mpremote`
 
 [,shell]
 ----
@@ -59,14 +134,14 @@ mpremote cp :file.py .
 mpremote rm file.py
 ----
 
-=== Run code without saving
+==== Run code without saving
 
 [,shell]
 ----
 mpremote run myscript.py
 ----
 
-=== Deplor a script (auto-run on boot)
+==== Deplor a script (auto-run on boot)
 
 [,shell]
 ----

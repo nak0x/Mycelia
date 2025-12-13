@@ -1,16 +1,12 @@
 {
+    "device_id": "ESP32-FF7700",
     "wifi": {
-        "SSID": "<network name>",
-        "password": "<network pwd>",
-        "attempts": 3,
-        "delay_in_msec": 200
+        "SSID": "<SSID>",
+        "password": "<password>",
+        "timeout": 2000
     },
-    "server": "<host IP>",
-    "ssl": {
-        "ca": "<ca cert in DER-format file name>",
-        "key": "<client key>",
-        "cert": "<client cet>",
-        "cert_reqs": 2
-    },
-    "socket_delay_ms": 5
+    "ws_server": "<server-url>",
+    "ws_reconnect": true,
+    "debug": false,
+    "slowed": false
 }

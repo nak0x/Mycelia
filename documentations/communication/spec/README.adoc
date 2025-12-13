@@ -34,7 +34,7 @@ This is an exemple of an `Update` json.
   "payload": [
     {
       "datatype": "string",
-      "value":  "UwU",
+      "value": "UwU",
       "slug": "a_target_value"
     }
   ]
@@ -63,13 +63,13 @@ All the value types.
 | `int`
 | An integer.
 
+| Bool
+| `bool`
+| Boolean field.
+
 | Float
 | `float`
 | A floating point number.
-
-| Char
-| `char`
-| A single characters.
 
 | String
 | `string`
@@ -90,6 +90,14 @@ All the value types.
 | String Array
 | `sarray`
 | An array of strings. (Dont be silly over there. You have to be 21+)
+
+| Dict
+| `dict`
+| A named list
+
+| Object
+| `object`
+| A JSON object
 
 | Enum
 | `enum`

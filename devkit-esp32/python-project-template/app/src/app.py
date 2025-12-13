@@ -20,6 +20,7 @@ class App(SingletonBase):
     setup = []
     update = []
     shutdown = []
+    on_frame_received = []
 
     # Constants
     SLOWED = True
@@ -32,26 +33,21 @@ class App(SingletonBase):
         self.config = Config()
         self.shutdown_request = False
         self.ticks = ticks_cpu
+        self.DEBUG = self.config.debug
+        self.SLOWED = self.config.slowed
 
     def idle(self):
         self.state = AppState.IDLE
-        led = self.config.pins["led"]
-        led.value(0 if led.value() else 1)
-        sleep(0.2)
         machine.idle()
 
     def run(self):
         for setup in self.setup:
-<<<<<<< Updated upstream
-            setup()
-=======
             try:
                 setup()
             except RuntimeError as e:
                 print(f"An error occurred while setting up the app: {e}")
                 continue
-
->>>>>>> Stashed changes
+              
         self.state = AppState.RUNNING
         while not self.shutdown_request:
             gc.collect()
@@ -66,3 +62,9 @@ class App(SingletonBase):
             self.state = AppState.SHUTDOWN
             for shutdown in self.shutdown:
                 shutdown()
+
+    def send_frame(self, frame):
+        # Discard frame that we dont care
+        if frame.metadata.receiver_id == self.config.device_id:
+            for hooks in self.on_frame_received:
+                hooks(frame)
