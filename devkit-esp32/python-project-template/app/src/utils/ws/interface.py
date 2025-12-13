@@ -27,18 +27,45 @@ class WebsocketInterface():
 
     def update(self):
         """
-        Blocking ws loop !
+        Non-blocking ws loop.
             - Send a heartbeat message
-            - Wait for a reply (recv blocks)
+            - Check for incoming messages (recv is now non-blocking)
         """
         if self.CLOSED:
             return
         if self.CONNECTED:
             try:
-                self.ws.send("up")
-                frame = FrameParser(self.ws.recv()).parse()
-                print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
-                App().send_frame(frame)
+                # Check for incoming messages (non-blocking)
+                data = self.ws.recv()
+                if data:  # Only process if data is available
+                    frame = FrameParser(data).parse()
+                    print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
+                    App().send_frame(frame)
+            except Exception as e:
+                print(f"An error occured while updating websocket: {e}")
+                self.close(not self.RECONNECT)
+        elif self.RECONNECT:
+            self.connect()
+    
+    async def aupdate(self):
+        """
+        Async update method using arecv().
+        Use this with uasyncio for fully asynchronous websocket handling.
+        
+        Example:
+            import uasyncio as asyncio
+            ws_interface = WebsocketInterface()
+            asyncio.create_task(ws_interface.aupdate())
+        """
+        if self.CLOSED:
+            return
+        if self.CONNECTED:
+            try:
+                data = await self.ws.arecv()
+                if data:  # Only process if data is available
+                    frame = FrameParser(data).parse()
+                    print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
+                    App().send_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")
                 self.close(not self.RECONNECT)

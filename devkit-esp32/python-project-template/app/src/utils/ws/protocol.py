@@ -6,7 +6,14 @@ import ure as re
 import ustruct as struct
 import urandom as random
 import usocket as socket
+import uselect
 from ucollections import namedtuple
+
+try:
+    import uasyncio as asyncio
+    ASYNC_AVAILABLE = True
+except ImportError:
+    ASYNC_AVAILABLE = False
 
 
 # Opcodes
@@ -70,6 +77,10 @@ class Websocket:
     def __init__(self, sock):
         self.sock = sock
         self.open = True
+        # Set socket to non-blocking mode for async operations
+        self.sock.setblocking(False)
+        self.poll = uselect.poll()
+        self.poll.register(self.sock, uselect.POLLIN)
 
     def __enter__(self):
         return self
@@ -80,6 +91,14 @@ class Websocket:
     def settimeout(self, timeout):
         self.sock.settimeout(timeout)
 
+    def _has_data(self, timeout=0):
+        """
+        Check if socket has data available using poll.
+        Returns True if data is available, False otherwise.
+        """
+        events = self.poll.poll(timeout)
+        return len(events) > 0 and events[0][1] & uselect.POLLIN
+
     def read_frame(self, max_size=None):
         """
         Read a frame from the socket.
@@ -89,7 +108,7 @@ class Websocket:
         # Frame header
         two_bytes = self.sock.read(2)
 
-        if not two_bytes:
+        if not two_bytes or len(two_bytes) < 2:
             raise NoDataException
 
         byte1, byte2 = struct.unpack('!BB', two_bytes)
@@ -103,19 +122,28 @@ class Websocket:
         length = byte2 & 0x7f
 
         if length == 126:  # Magic number, length header is 2 bytes
-            length, = struct.unpack('!H', self.sock.read(2))
+            length_bytes = self.sock.read(2)
+            if not length_bytes or len(length_bytes) < 2:
+                raise NoDataException
+            length, = struct.unpack('!H', length_bytes)
         elif length == 127:  # Magic number, length header is 8 bytes
-            length, = struct.unpack('!Q', self.sock.read(8))
+            length_bytes = self.sock.read(8)
+            if not length_bytes or len(length_bytes) < 8:
+                raise NoDataException
+            length, = struct.unpack('!Q', length_bytes)
 
         if mask:  # Mask is 4 bytes
             mask_bits = self.sock.read(4)
+            if not mask_bits or len(mask_bits) < 4:
+                raise NoDataException
 
         try:
             data = self.sock.read(length)
+            if not data or len(data) < length:
+                raise NoDataException
         except MemoryError:
             # We can't receive this many bytes, close the socket
-            print("Frame of length %s too big. Closing",
-                                       length)
+            print("Frame of length %s too big. Closing", length)
             self.close(code=CLOSE_TOO_BIG)
             return True, OP_CLOSE, None
 
@@ -169,14 +197,20 @@ class Websocket:
 
     def recv(self):
         """
-        Receive data from the websocket.
+        Receive data from the websocket (non-blocking).
 
         This is slightly different from 'websockets' in that it doesn't
         fire off a routine to process frames and put the data in a queue.
         If you don't call recv() sufficiently often you won't process control
         frames.
+        
+        Returns empty string if no data is available (non-blocking).
         """
         assert self.open
+
+        # Check if data is available before attempting to read
+        if not self._has_data(0):
+            return ''
 
         while self.open:
             try:
@@ -198,6 +232,61 @@ class Websocket:
             elif opcode == OP_CLOSE:
                 self._close()
                 return
+            elif opcode == OP_PONG:
+                # Ignore this frame, keep waiting for a data frame
+                continue
+            elif opcode == OP_PING:
+                # We need to send a pong frame
+                self.write_frame(OP_PONG, data)
+                # And then wait to receive
+                continue
+            elif opcode == OP_CONT:
+                # This is a continuation of a previous frame
+                raise NotImplementedError(opcode)
+            else:
+                raise ValueError(opcode)
+
+    async def arecv(self):
+        """
+        Asynchronously receive data from the websocket.
+        
+        This method yields control when no data is available, making it
+        suitable for use with uasyncio.
+        
+        Usage:
+            data = await ws.arecv()
+        """
+        if not ASYNC_AVAILABLE:
+            raise RuntimeError("uasyncio is not available. Install uasyncio for async support.")
+        
+        assert self.open
+
+        while self.open:
+            # Wait for data to be available (yields control to event loop)
+            while not self._has_data(0):
+                await asyncio.sleep_ms(10)  # Yield control and wait a bit
+            
+            try:
+                fin, opcode, data = self.read_frame()
+            except NoDataException:
+                # No data available, yield and try again
+                await asyncio.sleep_ms(10)
+                continue
+            except ValueError:
+                print("Failed to read frame. Socket dead.")
+                self._close()
+                raise ConnectionClosed()
+
+            if not fin:
+                raise NotImplementedError()
+
+            if opcode == OP_TEXT:
+                return data.decode('utf-8')
+            elif opcode == OP_BYTES:
+                return data
+            elif opcode == OP_CLOSE:
+                self._close()
+                return None
             elif opcode == OP_PONG:
                 # Ignore this frame, keep waiting for a data frame
                 continue
@@ -240,4 +329,8 @@ class Websocket:
     def _close(self):
         if __debug__: print("Connection closed")
         self.open = False
+        try:
+            self.poll.unregister(self.sock)
+        except:
+            pass
         self.sock.close()
