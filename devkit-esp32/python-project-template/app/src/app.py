@@ -28,6 +28,7 @@ class App(SingletonBase):
 
     # App state
     state = AppState.SETUP
+    old_state = AppState.SETUP
 
     def _init_once(self):
         self.config = Config()
@@ -51,9 +52,13 @@ class App(SingletonBase):
         self.state = AppState.RUNNING
         while not self.shutdown_request:
             gc.collect()
-            if self.state == AppState.RUNNING:
+
+            if self.state != self.old_state:
+                self.old_state = self.state
                 if self.DEBUG:
-                    print(f"App state: {self.state} | slowed: {self.SLOWED}")
+                    print(f"App state: {self.state}")
+                    
+            if self.state == AppState.RUNNING:
                 for update in self.update:
                     update()
                 if self.SLOWED:
