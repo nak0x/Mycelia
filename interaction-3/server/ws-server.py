@@ -29,31 +29,44 @@ def build_led_message(value: bool = True) -> str:
     }
     return json.dumps(payload)
 
+async def broadcast(message: str, sender=None):
+    # Snapshot des clients
+    async with CLIENTS_LOCK:
+        clients = list(CLIENTS)
+
+    if not clients:
+        return
+
+    # Envoi en parallèle
+    tasks = []
+    for c in clients:
+        if sender is not None and c is sender:
+            continue
+        tasks.append(asyncio.create_task(c.send(message)))
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Nettoyage des sockets mortes
+    dead = []
+    for c, r in zip([c for c in clients if c is not sender], results):
+        if isinstance(r, Exception):
+            dead.append(c)
+
+    if dead:
+        async with CLIENTS_LOCK:
+            for c in dead:
+                CLIENTS.discard(c)
+
 async def handler(websocket):
-    # Track connections
     async with CLIENTS_LOCK:
         CLIENTS.add(websocket)
 
-    ssl_object = websocket.transport.get_extra_info("ssl_object")
-    if ssl_object:
-        client_cert = ssl_object.getpeercert()
-        common_name = None
-        if client_cert:
-            subject = client_cert.get("subject", [])
-            for item in subject:
-                for attr in item:
-                    if attr[0].lower() == "commonname":
-                        common_name = attr[1]
-                        break
-                if common_name:
-                    break
-        print(f"New client: {common_name}")
-    else:
-        print("New anonymous client.")
+    print("New client.")
 
     try:
         async for message in websocket:
             print(f"{datetime.now().isoformat()} | recv: {message}")
+            await broadcast(message, sender=websocket)  # <-- ICI: rebroadcast
     except Exception as ex:
         print(f"Connection error/closed: {ex}")
     finally:
