@@ -1,7 +1,11 @@
+import time
 import gc
+from datetime import datetime
 from .client import connect as ws_connect
 from src.app import App
 from src.utils.frames.frame_parser import FrameParser
+from src.utils.frames.frame import Frame, Metadata, Payload
+
 
 class WebsocketInterface():
     CONNECTED = False
@@ -24,6 +28,28 @@ class WebsocketInterface():
             return
         self.CONNECTED = True
         print("Websocket connected")
+
+    def send_value(self, slug: str, value: any, type: str, receiver_id: str):
+        frame = Frame(
+            metadata=Metadata(
+                sender_id=App().config.device_id,
+                timestamp=time.time(),
+                message_id=f"MSG-{datetime.now().isoformat()}-0001",
+                type="ws-data",
+                receiver_id=receiver_id,
+            ),
+            payloads=[
+                Payload(
+                    datatype=type,
+                    value=value,
+                    slug=slug,
+                )
+            ],
+        )
+        self.send_frame(frame)
+
+    def send_frame(self, frame):
+        self.ws.send(frame.to_json())
 
     def update(self):
         """

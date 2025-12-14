@@ -1,3 +1,5 @@
+import json
+
 class Frame:
     """
     A frame received from another device.
@@ -12,6 +14,21 @@ class Frame:
             status=metadata["status"],
         )
         self.payload = PayloadList(payloads)
+    
+    def to_json(self):
+        data = {
+            "metadata": {
+                "senderId": self.metadata.sender_id,
+                "timestamp": self.metadata.timestamp,
+                "messageId": self.metadata.message_id,
+                "type": self.metadata.type,
+                "receiverId": self.metadata.receiver_id,
+                "status": self.metadata.status,
+            },
+            "payload": [payload.to_json() for payload in self.payload],
+        }
+
+        return json.dumps(data)
 
     def __str__(self):
         return f"""
@@ -89,3 +106,10 @@ class Payload:
     datatype: {self.datatype}
     value: {self.value}
     slug: {self.slug}"""
+
+    def to_json(self):
+        return {
+            "datatype": self.datatype,
+            "value": self.value,
+            "slug": self.slug,
+        }
