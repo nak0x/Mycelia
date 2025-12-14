@@ -5,8 +5,10 @@
         "password": "<password>",
         "timeout": 2000
     },
-    "ws_server": "<server-url>",
-    "ws_reconnect": true,
+    "websocket": {
+        "server": "<server-url>",
+        "reconnect": true
+    },
     "debug": false,
     "slowed": false
 }
