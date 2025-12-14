@@ -1,8 +1,8 @@
 import network
 import time
-from src.app import App
-from src.components.led import Led
-from src.utils.gpio import GPIO
+from framework.app import App
+from framework.components.led import Led
+from framework.utils.gpio import GPIO
 
 class WifiManager:
     _config = {}

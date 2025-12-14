@@ -1,8 +1,8 @@
 import json
 from machine import Pin
-from src.utils.gpio import GPIO
-from .utils.json.validator import JsonValidator
-from .utils.json.template import TemplateBuilder
+from framework.utils.gpio import GPIO
+from framework.utils.json.validator import JsonValidator
+from framework.utils.json.template import TemplateBuilder
 
 class Config:
     pins = {}

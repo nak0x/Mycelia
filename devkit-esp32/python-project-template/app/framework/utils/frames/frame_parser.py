@@ -1,6 +1,6 @@
 import json
 
-from src.utils.frames.frame import Frame
+from framework.utils.frames.frame import Frame
 
 class FrameParser:
     frame = None

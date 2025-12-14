@@ -1,5 +1,7 @@
 import json
-from .types import JsonTypes
+from framework.utils.json.types import JsonTypes
+
+
 class TemplateBuildField:
     def __init__(self, name, value_type, required=True, default=None, children=None):
         self.name = name

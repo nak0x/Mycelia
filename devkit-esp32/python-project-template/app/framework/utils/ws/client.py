@@ -9,8 +9,7 @@ import usocket as socket
 import ubinascii as binascii
 import urandom as random
 
-from .protocol import Websocket, urlparse
-
+from framework.utils.ws.protocol import Websocket, urlparse
 
 
 class WebsocketClient(Websocket):

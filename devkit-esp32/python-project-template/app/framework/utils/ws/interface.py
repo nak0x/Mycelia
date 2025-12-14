@@ -1,11 +1,10 @@
 import time
 import gc
-from datetime import datetime
-from .client import connect as ws_connect
-from src.app import App
-from src.utils.frames.frame_parser import FrameParser
-from src.utils.frames.frame import Frame, Metadata, Payload
-from src.utils.abstract_singleton import SingletonBase
+from framework.utils.ws.client import connect as ws_connect
+from framework.app import App
+from framework.utils.frames.frame_parser import FrameParser
+from framework.utils.frames.frame import Frame, Metadata, Payload
+from framework.utils.abstract_singleton import SingletonBase
 
 class WebsocketInterface(SingletonBase):
     CONNECTED = False
@@ -30,11 +29,12 @@ class WebsocketInterface(SingletonBase):
         print("Websocket connected")
 
     def send_value(self, slug: str, value: any, type: str, receiver_id: str):
+        datetime = time.localtime(time.time())
         frame = Frame(
             metadata=Metadata(
                 sender_id=App().config.device_id,
                 timestamp=time.time(),
-                message_id=f"MSG-{datetime.now().isoformat()}-0001",
+                message_id=f"MSG-{datetime[0]}{datetime[1]}{datetime[2]}-0001",
                 type="ws-data",
                 receiver_id=receiver_id,
             ),

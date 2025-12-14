@@ -1,6 +1,6 @@
-from src.app import App
+from framework.app import App
 from machine import Pin
-from src.utils.frames.frame import Frame
+from framework.utils.frames.frame import Frame
 
 class Led:
     is_on = False
