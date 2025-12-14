@@ -1,19 +1,16 @@
-from framework.app import App
-from framework.components.button import Button
-from framework.utils.gpio import GPIO
-from framework.utils.ws.interface import WebsocketInterface
+from framework.controller import Controller
+from framework.utils.frames.frame import Frame
 
-class Controller:
+class ExampleController(Controller):
+    
+    def setup(self):
+        pass
 
-    def __init__(self):
-        button = Button(
-            pin=GPIO.GPIO32,
-            onPress=self.send_btn_pressed,
-            onRelease=self.send_btn_released
-        )
+    def update(self):
+        pass
 
-    def send_btn_pressed(self):
-        WebsocketInterface().send_value("btn_pressed", True, "bool", App().config.device_id)
+    def shutdown(self):
+        pass
 
-    def send_btn_released(self):
-        WebsocketInterface().send_value("btn_released", False, "bool", App().config.device_id)
+    def on_frame_received(self, frame: Frame):
+        pass
