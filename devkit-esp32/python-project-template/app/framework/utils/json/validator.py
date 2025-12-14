@@ -1,5 +1,7 @@
 import json
-from .template import Template
+from framework.utils.json.template import Template
+
+
 class JsonValidator:
     def __init__(self, template: Template):
         self.template = template

@@ -1,7 +1,7 @@
-from src.app import App
+from framework.app import App
 from machine import Pin
 from neopixel import NeoPixel
-from src.utils.frames.frame import Frame
+from framework.utils.frames.frame import Frame
 
 class LedStrip:
 

@@ -3,8 +3,8 @@ import gc
 
 from time import ticks_cpu, sleep
 
-from .config import Config
-from .utils.abstract_singleton import SingletonBase
+from framework.config import Config
+from framework.utils.abstract_singleton import SingletonBase
 
 
 class AppState:

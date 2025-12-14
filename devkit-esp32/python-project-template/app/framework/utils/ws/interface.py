@@ -1,9 +1,12 @@
+import time
 import gc
 from .client import connect as ws_connect
-from src.app import App
-from src.utils.frames.frame_parser import FrameParser
+from framework.app import App
+from framework.utils.frames.frame_parser import FrameParser
+from framework.utils.frames.frame import Frame, Metadata, Payload
+from framework.utils.abstract_singleton import SingletonBase
 
-class WebsocketInterface():
+class WebsocketInterface(SingletonBase):
     CONNECTED = False
     CLOSED = False
     RECONNECT = False
@@ -24,6 +27,30 @@ class WebsocketInterface():
             return
         self.CONNECTED = True
         print("Websocket connected")
+
+    def send_value(self, slug: str, value: any, type: str, receiver_id: str):
+        datetime = time.localtime(time.time())
+        frame = Frame(
+            metadata={
+                "senderId": App().config.device_id,
+                "timestamp": time.time(),
+                "messageId": f"MSG-{datetime[0]}{datetime[1]}{datetime[2]}-0001",
+                "type": "ws-data",
+                "receiverId": receiver_id,
+                "status": {"connection": 200},
+            },
+            payloads=[
+                {
+                    "datatype": type,
+                    "value": value,
+                    "slug": slug,
+                }
+            ],
+        )
+        self.send_frame(frame)
+
+    def send_frame(self, frame):
+        self.ws.send(frame.to_json())
 
     def update(self):
         """

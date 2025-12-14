@@ -1,4 +1,4 @@
-from src.app import App
+from framework.app import App
 from machine import Pin
 
 class Button:
