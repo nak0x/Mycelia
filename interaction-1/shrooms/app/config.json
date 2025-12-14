@@ -1,0 +1,14 @@
+{
+  "device_id": "ESP32-FF7700",
+  "wifi": {
+    "SSID": "Livebox-8810_EXT",
+    "password": "ZiwfswvFwWTsqsV7q5",
+    "timeout": 3000
+  },
+  "websocket": {
+    "server": "ws://192.168.1.85:8000",
+    "reconnect": true
+  },
+  "debug": true,
+  "slowed": false
+}
