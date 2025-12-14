@@ -230,6 +230,15 @@ class Websocket:
             elif opcode == OP_BYTES:
                 return data
             elif opcode == OP_CLOSE:
+                # Extract close code from received frame (first 2 bytes if present)
+                close_code = CLOSE_OK
+                if data and len(data) >= 2:
+                    close_code = struct.unpack('!H', data[:2])[0]
+                # Send close frame back to server (RFC 6455 requires this)
+                try:
+                    self.write_frame(OP_CLOSE, data[:2] if data and len(data) >= 2 else struct.pack('!H', CLOSE_OK))
+                except:
+                    pass  # Socket might already be closed
                 self._close()
                 return
             elif opcode == OP_PONG:
@@ -285,6 +294,15 @@ class Websocket:
             elif opcode == OP_BYTES:
                 return data
             elif opcode == OP_CLOSE:
+                # Extract close code from received frame (first 2 bytes if present)
+                close_code = CLOSE_OK
+                if data and len(data) >= 2:
+                    close_code = struct.unpack('!H', data[:2])[0]
+                # Send close frame back to server (RFC 6455 requires this)
+                try:
+                    self.write_frame(OP_CLOSE, data[:2] if data and len(data) >= 2 else struct.pack('!H', CLOSE_OK))
+                except:
+                    pass  # Socket might already be closed
                 self._close()
                 return None
             elif opcode == OP_PONG:
