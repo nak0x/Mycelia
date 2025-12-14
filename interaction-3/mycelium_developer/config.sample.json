@@ -1,0 +1,14 @@
+{
+    "device_id": "ESP32-FF7700",
+    "wifi": {
+        "SSID": "<SSID>",
+        "password": "<password>",
+        "timeout": 2000
+    },
+    "websocket": {
+        "server": "<server-url>",
+        "reconnect": true
+    },
+    "debug": false,
+    "slowed": false
+}
