@@ -5,9 +5,9 @@ from .client import connect as ws_connect
 from src.app import App
 from src.utils.frames.frame_parser import FrameParser
 from src.utils.frames.frame import Frame, Metadata, Payload
+from src.utils.abstract_singleton import SingletonBase
 
-
-class WebsocketInterface():
+class WebsocketInterface(SingletonBase):
     CONNECTED = False
     CLOSED = False
     RECONNECT = False
