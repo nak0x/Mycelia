@@ -11,7 +11,7 @@ class Button:
         App().update.append(self.update)
 
     def update(self):
-        if self.pin.value() == 1:
+        if self.pin.value() == 0:
             if not self.pressed:
                 self.pressed = True
                 if self.onPress is not None:
