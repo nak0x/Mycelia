@@ -1,6 +1,6 @@
 import time
 import gc
-from framework.utils.ws.client import connect as ws_connect
+from .client import connect as ws_connect
 from framework.app import App
 from framework.utils.frames.frame_parser import FrameParser
 from framework.utils.frames.frame import Frame, Metadata, Payload
@@ -31,19 +31,20 @@ class WebsocketInterface(SingletonBase):
     def send_value(self, slug: str, value: any, type: str, receiver_id: str):
         datetime = time.localtime(time.time())
         frame = Frame(
-            metadata=Metadata(
-                sender_id=App().config.device_id,
-                timestamp=time.time(),
-                message_id=f"MSG-{datetime[0]}{datetime[1]}{datetime[2]}-0001",
-                type="ws-data",
-                receiver_id=receiver_id,
-            ),
+            metadata={
+                "senderId": App().config.device_id,
+                "timestamp": time.time(),
+                "messageId": f"MSG-{datetime[0]}{datetime[1]}{datetime[2]}-0001",
+                "type": "ws-data",
+                "receiverId": receiver_id,
+                "status": {"connection": 200},
+            },
             payloads=[
-                Payload(
-                    datatype=type,
-                    value=value,
-                    slug=slug,
-                )
+                {
+                    "datatype": type,
+                    "value": value,
+                    "slug": slug,
+                }
             ],
         )
         self.send_frame(frame)
