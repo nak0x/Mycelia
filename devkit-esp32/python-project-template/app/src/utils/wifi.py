@@ -1,16 +1,23 @@
 import network
 import time
 from src.app import App
+from src.components.led import Led
+from src.utils.gpio import GPIO
 
 class WifiManager:
     _config = {}
     wlan = None
+    led = None
 
     def __init__(self):
         # Append WifiManager setup to app hooks
         app = App()
         app.setup.append(self._setup)
         app.update.append(self._update)
+
+        # Set the led pin
+        self.led = Led(GPIO.LED)
+
         # Free the instance space
         del app
 
@@ -22,7 +29,7 @@ class WifiManager:
 
     def _update(self):
         if not self.wlan.isconnected():
-            App().config.pins["builtin-led"].off()
+            self.led.off()
             print(f"Wifi connection lost. Trying to reconnect...")
             self._connect()
 
@@ -37,7 +44,7 @@ class WifiManager:
         self._connect()
 
     def _connect(self):
-        App().config.pins["builtin-led"].off()
+        self.led.off()
         if self.wlan is None:
             self.wlan = network.WLAN()
         
@@ -61,5 +68,5 @@ class WifiManager:
                 App().idle()
 
         # Light the builtin led when wifi is connected
-        App().config.pins["builtin-led"].on()
+        self.led.on()
         print('Network config:', self.wlan.ipconfig('addr4'))
