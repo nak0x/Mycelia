@@ -11,7 +11,7 @@ import SwiftUI
 struct ServerRainStickApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            WebsocketView()
         }
     }
 }
