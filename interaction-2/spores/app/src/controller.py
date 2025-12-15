@@ -26,23 +26,11 @@ class ExampleController(Controller):
         print("Controller arrêté - LEDs éteintes")
 
     def on_frame_received(self, frame: Frame):
-        """
-        Callback appelé quand une frame est reçue.
-        Le framework gère déjà le routing vers les composants avec slug.
-        """
         pass
 
     def handle_led_command(self, led_strip, payload):
-        """
-        Callback appelé quand une frame avec le slug 'led' est reçue.
-
-        Args:
-            led_strip: L'instance LedStrip
-            payload: Le payload contenant la commande (boolean: True/False)
-        """
         value = payload.value
 
-        # Le serveur envoie des boolean (True/False)
         if value is True or value == True:
             print(">> ACTION: Allumage des LEDs")
             led_strip.on()
