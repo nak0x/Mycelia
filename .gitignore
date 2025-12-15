@@ -6,3 +6,4 @@ build/
 .venv
 *.config.json
 config.json
+__pycache__/

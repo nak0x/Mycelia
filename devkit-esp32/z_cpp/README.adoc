@@ -1,0 +1,75 @@
+[devkit-esp32]
+= DevKit-esp32 C++
+
+Tooling et doc + links pour dev sur esp32 depuis un mac silicon.
+
+[ide]
+== IDE Dev kit
+
+J'ai pas d'IDE pour dev surtout en bas niveau. Flemme.
+Mais il y a xref:https://platformio.org/install/ide[PlatformIO] pour VSCode.
+
+[native]
+== Native CLI
+
+Il existe xref:https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/linux-macos-setup.html[Espressif], c'est un
+framework pour dev sur esp32. Il fonctionne en CLI et depuis un mac. On peut aussi l'utiliser dans un IDE.
+
+[espressif-install]
+=== Install
+
+[,shell]
+----
+# Requirements
+brew install cmake ninja dfu-util ccache python3 git
+
+# Il faut mettre un directory dans son $PATH pour ccache
+echo "export PATH=/opt/homebrew/opt/ccache/libexec:$PATH" >> ~/.zshrc
+
+# Sur les M1 il faut bien avec Apple Rosetta 2
+/usr/sbin/softwareupdate --install-rosetta --agree-to-license
+
+# Install de ESP-IDF
+mkdir -p ~/esp
+cd ~/esp
+git clone --recursive https://github.com/espressif/esp-idf.git
+
+# Setup tooling
+cd ~/esp/esp-idf
+./install.sh esp32
+# On peut aussi faire `./install.sh esp32,esp32s3` ou `./install.sh all` pour install d'autre ou tout le framework
+
+# Source IDF - 2 Options : Alias ou direct source
+# Direct
+. $HOME/esp/esp-idf/export.sh
+
+# Alias (Easier for starting ESP dev later on)
+echo "alias get_idf=\". $HOME/esp/esp-idf/export.sh\""
+source $HOME/.zshrc
+get_idf
+
+
+# Test Hello World
+
+cd ~/esp
+cd -r $IDF_PATH/examples/get-started-hello_world .
+
+# Get the Serial PORT (In my case it was `cu.usbserial-0001`
+ls /dev/cu.*
+
+cd ~/esp/hello_world
+idf.py set-target esp32
+idf.py menuconfig # Not usefull for the hello-world but had to check if it works. Can be themed with --style (idf.py menuconfig --help)
+idf.py build
+
+# The port is the full path, baud is from the tech doc of the manufacturer. It's also the default baud for esp32
+# Si il y as deja quelque chose en lecture ou ecriture sur le port le flash ne peut fonctionner.
+# Il faut terminer le monitoring avant de reflash
+idf.py -p /dev/cu.usbserial-0001 -b 115200 flash
+
+# Serial output
+idf.pu -p /dev/cu.usbserial-0001 monitor
+
+# Flash erase
+idf.py -p /dev/cu.usbserial-0001 erase-flash
+----
