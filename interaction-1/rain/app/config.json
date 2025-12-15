@@ -3,10 +3,10 @@
   "wifi": {
     "SSID": "Cudy-F00C",
     "password": "70897678",
-    "timeout": 3000
+    "timeout": 5000
   },
   "websocket": {
-    "server": "ws://192.168.10.50:8005",
+    "server": "ws://192.168.10.167:8000",
     "reconnect": true
   },
   "debug": true,
