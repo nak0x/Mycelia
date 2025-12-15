@@ -29,6 +29,26 @@ def build_led_message(value: bool = True) -> str:
     }
     return json.dumps(payload)
 
+def build_interaction_done_message() -> str:
+    payload = {
+        "metadata": {
+            "senderId": "SERVER-0E990F",
+            "timestamp": time.time(),
+            "messageId": f"MSG-{datetime.now().isoformat()}-0002",
+            "type": "ws-data",
+            "receiverId": "ESP32-TARGET",  # Modifiez avec l'ID de votre ESP cible
+            "status": {"connection": 200},
+        },
+        "payload": [
+            {
+                "datatype": "string",
+                "value": "done",
+                "slug": "interaction-2",
+            }
+        ],
+    }
+    return json.dumps(payload)
+
 async def broadcast(message: str, sender=None):
     # Snapshot des clients
     async with CLIENTS_LOCK:
@@ -66,6 +86,19 @@ async def handler(websocket):
     try:
         async for message in websocket:
             print(f"{datetime.now().isoformat()} | recv: {message}")
+
+            # Vérifier si le message contient led: true
+            try:
+                data = json.loads(message)
+                if "payload" in data:
+                    for item in data["payload"]:
+                        if item.get("slug") == "led" and item.get("value") is True:
+                            print("LED detected as TRUE - sending interaction-2 done message")
+                            done_message = build_interaction_done_message()
+                            await broadcast(done_message, sender=websocket)
+            except json.JSONDecodeError:
+                pass  # Si ce n'est pas du JSON, on continue normalement
+
             await broadcast(message, sender=websocket)  # <-- ICI: rebroadcast
     except Exception as ex:
         print(f"Connection error/closed: {ex}")
