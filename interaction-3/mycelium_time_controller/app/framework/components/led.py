@@ -5,9 +5,10 @@ from framework.utils.frames.frame import Frame
 class Led:
     is_on = False
 
-    def __init__(self, pin, slug = None):
+    def __init__(self, pin, slug = None, on_payload_received = None):
         self.pin = Pin(pin, Pin.OUT, Pin.PULL_DOWN)
         self.slug = slug
+        self.on_payload_received_callback = on_payload_received
         App().on_frame_received.append(self.on_frame_received)
 
     def on(self):
@@ -23,5 +24,8 @@ class Led:
             return
         
         for payload in frame.payload:
-            if payload.slug == self.slug and payload.datatype == "bool":
-                self.on() if payload.value else self.off()
+            if payload.slug == self.slug:
+                if self.on_payload_received_callback is not None:
+                    self.on_payload_received_callback(self, payload)
+                elif payload.datatype == "bool":
+                    self.on() if payload.value else self.off()
