@@ -1,16 +1,9 @@
 from framework.controller import Controller
-from framework.utils.frames.frame import Frame
+from framework.components.engine import Engine
+from framework.utils.gpio import GPIO
 
-class ExampleController(Controller):
+class WindController(Controller):
     
-    def setup(self):
-        pass
-
-    def update(self):
-        pass
-
-    def shutdown(self):
-        pass
-
-    def on_frame_received(self, frame: Frame):
-        pass
+    def __init__(self):
+        super().__init__()
+        Engine(GPIO.GPIO12, "fan")
