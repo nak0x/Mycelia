@@ -6,6 +6,8 @@ from framework.utils.ws.interface import WebsocketInterface
 class ExampleController(Controller):
 
     def setup(self):
+        print("Début de l'initialisation...")
+
         self.button = Button(
             pin=5,
             onPress=self.on_button_press,
@@ -18,13 +20,12 @@ class ExampleController(Controller):
             onRelease=self.on_button2_release
         )
 
-        self.ws = WebsocketInterface()
-
         self.terre_status = False
         self.sphero_status = False
         self.last_checksum = None
 
         print("Controller initialisé - Boutons prêts sur GPIO 5 et 18")
+        print("Attendez un appui sur les boutons...")
 
     def update(self):
         current_checksum = (self.terre_status, self.sphero_status)
@@ -33,7 +34,7 @@ class ExampleController(Controller):
         if current_checksum != self.last_checksum:
             led_value = self.terre_status and self.sphero_status
 
-            self.ws.send_value(
+            WebsocketInterface().send_value(
                 slug="led",
                 value=led_value,
                 type="boolean",
