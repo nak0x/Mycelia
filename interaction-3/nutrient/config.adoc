@@ -1,0 +1,52 @@
+= Configuration documentation
+
+WARNING: This will be rework very soon to be more robust. Settings name might change.
+
+[,json]
+----
+{
+    "device_id": "ESP32-FF7700",
+    "wifi": {
+        "SSID": "<SSID>",
+        "password": "<password>",
+        "timeout": 2000
+    },
+    "ws_server": "<server-url>",
+    "ws_reconnect": true,
+    "debug": false,
+    "slowed": false
+}
+----
+
+This is the default configuration.
+
+== Fields documentations :
+
+
+|===
+|Field | Description
+
+|`device_id`
+|The esp32 id following the convention.
+
+|`wifi.SSID`
+|Wifi SSID in case the WifiManager is used.
+
+|`wifi.password`
+|Wifi password for the WifiManager
+
+|`wifi.timeout`
+|The timeout delay in ms before the connection fail to connect.
+
+|`ws_server`
+|The address of your WebSockets server. Can be remove is websocket aren't used.
+
+|`ws_reconnect`
+|If the web socket client always try to reconnect if connection lost or was not able to establish connection
+
+|`debug`
+|Display or not the some logs
+
+|`slowed`
+|Slow the execution of the loop so it's easier to debug
+|===
