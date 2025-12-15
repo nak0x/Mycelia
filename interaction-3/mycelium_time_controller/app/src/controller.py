@@ -12,4 +12,5 @@ class MainController(Controller):
 
     def increment_mycelium(self):
         self.mycelium_counter += 1
-        WebsocketInterface().send_value("mycelium_led_strip", True, "bool", "ESP32-030002")
+        # WebsocketInterface().send_value("mycelium_led_strip", True, "bool", "ESP32-030002")
+        WebsocketInterface().send_value("animated", self.mycelium_counter % 2 == 0, "bool", "ESP32-030003")
