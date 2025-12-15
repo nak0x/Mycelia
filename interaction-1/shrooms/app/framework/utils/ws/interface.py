@@ -66,6 +66,8 @@ class WebsocketInterface(SingletonBase):
                 data = self.ws.recv()
                 if data:  # Only process if data is available
                     frame = FrameParser(data).parse()
+                    if App().config.debug:
+                        print(frame)
                     print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
                     App().broadcast_frame(frame)
             except Exception as e:
