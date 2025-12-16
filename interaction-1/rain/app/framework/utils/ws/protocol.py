@@ -24,6 +24,16 @@ OP_CLOSE = const(0x8)
 OP_PING = const(0x9)
 OP_PONG = const(0xa)
 
+# Opcode names for logging
+OPCODE_NAMES = {
+    OP_CONT: "CONT",
+    OP_TEXT: "TEXT",
+    OP_BYTES: "BYTES",
+    OP_CLOSE: "CLOSE",
+    OP_PING: "PING",
+    OP_PONG: "PONG",
+}
+
 # Close codes
 CLOSE_OK = const(1000)
 CLOSE_GOING_AWAY = const(1001)
@@ -116,6 +126,8 @@ class Websocket:
         # Byte 1: FIN(1) _(1) _(1) _(1) OPCODE(4)
         fin = bool(byte1 & 0x80)
         opcode = byte1 & 0x0f
+        print(opcode)
+        print(fin)
 
         # Byte 2: MASK(1) LENGTH(7)
         mask = bool(byte2 & (1 << 7))
@@ -139,6 +151,7 @@ class Websocket:
 
         try:
             data = self.sock.read(length)
+            print(data)
             if not data or len(data) < length:
                 raise NoDataException
         except MemoryError:
@@ -162,6 +175,21 @@ class Websocket:
         mask = self.is_client  # messages sent by client are masked
 
         length = len(data)
+        opcode_name = OPCODE_NAMES.get(opcode, f"UNKNOWN(0x{opcode:x})")
+        
+        # Log outgoing frame
+        if opcode == OP_PING or opcode == OP_PONG:
+            print(f"[WS OUT] {opcode_name} (len={length})")
+        elif opcode == OP_CLOSE:
+            print(f"[WS OUT] {opcode_name} (len={length})")
+        elif opcode == OP_TEXT:
+            try:
+                text_preview = data.decode('utf-8')[:50] if data else ""
+                print(f"[WS OUT] {opcode_name} (len={length}): {text_preview}")
+            except:
+                print(f"[WS OUT] {opcode_name} (len={length})")
+        else:
+            print(f"[WS OUT] {opcode_name} (len={length})")
 
         # Frame header
         # Byte 1: FIN(1) _(1) _(1) _(1) OPCODE(4)
@@ -194,6 +222,14 @@ class Websocket:
                          for i, b in enumerate(data))
 
         self.sock.write(data)
+       
+        # Flush socket to ensure data is sent immediately, especially critical for PONG responses
+        # In MicroPython, socket writes may be buffered
+        try:
+            self.sock.flush()
+        except AttributeError:
+            # Some MicroPython implementations don't have flush(), that's okay
+            pass
 
     def recv(self):
         """
@@ -205,20 +241,55 @@ class Websocket:
         frames.
         
         Returns empty string if no data is available (non-blocking).
+        This method processes ALL available frames including PING/PONG to
+        maintain keepalive, even when no data frames are present.
         """
         assert self.open
 
-        # Check if data is available before attempting to read
-        if not self._has_data(0):
-            return ''
+        # Track if we've processed any frames to avoid infinite loops
+        frames_processed = 0
+        max_frames_per_call = 100  # Prevent infinite loops
+        
+        # Process all available frames in one call
+        # This ensures PING frames are always processed even if no data frames are available
+        while self.open and frames_processed < max_frames_per_call:
+            # Check if data is available before attempting to read
+            has_data = self._has_data(0)
+            if not has_data:
+                # No data available
+                # If we haven't processed any frames, return immediately
+                if frames_processed == 0:
+                    return ''
+                # If we've processed some frames (like PING), we're done processing this batch
+                break
 
-        while self.open:
             try:
                 fin, opcode, data = self.read_frame()
+                frames_processed += 1
+                opcode_name = OPCODE_NAMES.get(opcode, f"UNKNOWN(0x{opcode:x})")
+                print(opcode_name, opcode)
+                
+                # Log incoming frame
+                if opcode == OP_PING:
+                    print(f"[WS IN]  {opcode_name} (len={len(data)}) - RESPONDING WITH PONG")
+                elif opcode == OP_PONG:
+                    print(f"[WS IN]  {opcode_name} (len={len(data)})")
+                elif opcode == OP_CLOSE:
+                    print(f"[WS IN]  {opcode_name} (len={len(data)})")
+                elif opcode == OP_TEXT:
+                    try:
+                        text_preview = data.decode('utf-8')[:50] if data else ""
+                        print(f"[WS IN]  {opcode_name} (len={len(data)}): {text_preview}")
+                    except:
+                        print(f"[WS IN]  {opcode_name} (len={len(data)})")
+                else:
+                    print(f"[WS IN]  {opcode_name} (len={len(data)})")
+                    
             except NoDataException:
-                return ''
+                # No more data available in this batch
+                break
             except ValueError:
-                print("Failed to read frame. Socket dead.")
+                print("[WS ERROR] Failed to read frame. Socket dead.")
                 self._close()
                 raise ConnectionClosed()
 
@@ -226,8 +297,10 @@ class Websocket:
                 raise NotImplementedError()
 
             if opcode == OP_TEXT:
+                # Return data frame immediately
                 return data.decode('utf-8')
             elif opcode == OP_BYTES:
+                # Return data frame immediately
                 return data
             elif opcode == OP_CLOSE:
                 # Extract close code from received frame (first 2 bytes if present)
@@ -242,18 +315,30 @@ class Websocket:
                 self._close()
                 return
             elif opcode == OP_PONG:
-                # Ignore this frame, keep waiting for a data frame
+                # Ignore this frame, keep processing remaining frames
                 continue
             elif opcode == OP_PING:
-                # We need to send a pong frame
-                self.write_frame(OP_PONG, data)
-                # And then wait to receive
+                # CRITICAL: Send PONG immediately to keep connection alive
+                # This must be done even if no data frames are available
+                print(f"[WS] Processing PING, sending PONG response...")
+                try:
+                    self.write_frame(OP_PONG, data)
+                    print(f"[WS] PONG sent successfully")
+                except Exception as e:
+                    print(f"[WS ERROR] Failed to send PONG: {e}")
+                    self._close()
+                    raise ConnectionClosed()
+                # Continue processing any remaining frames
                 continue
             elif opcode == OP_CONT:
                 # This is a continuation of a previous frame
                 raise NotImplementedError(opcode)
             else:
                 raise ValueError(opcode)
+        
+        # Return empty string if no data frame was received
+        # Note: Control frames (PING/PONG) have been processed above
+        return ''
 
     async def arecv(self):
         """
@@ -332,6 +417,7 @@ class Websocket:
         else:
             raise TypeError()
 
+        # Log is handled in write_frame, but add context here
         self.write_frame(opcode, buf)
 
     def close(self, code=CLOSE_OK, reason=''):
