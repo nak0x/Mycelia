@@ -50,7 +50,9 @@ class WebsocketInterface(SingletonBase):
         self.send_frame(frame)
 
     def send_frame(self, frame):
-        self.ws.send(frame.to_json())
+        frame_json = frame.to_json()
+        print(f"[WS] Sending frame: {len(frame_json)} bytes")
+        self.ws.send(frame_json)
 
     def update(self):
         """
@@ -66,12 +68,10 @@ class WebsocketInterface(SingletonBase):
                 data = self.ws.recv()
                 if data:  # Only process if data is available
                     frame = FrameParser(data).parse()
-                    if App().config.debug:
-                        print(frame)
-                    print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
+                    print(f"[WS] Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
                     App().broadcast_frame(frame)
             except Exception as e:
-                print(f"An error occured while updating websocket: {e}")
+                print(f"[WS ERROR] An error occured while updating websocket: {e}")
                 self.close(not self.RECONNECT)
         elif self.RECONNECT:
             self.connect()
