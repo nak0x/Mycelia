@@ -6,4 +6,4 @@ class WindController(Controller):
     
     def __init__(self):
         super().__init__()
-        Engine(GPIO.GPIO12, "fan")
+        Engine(GPIO.GPIO14, "fan")

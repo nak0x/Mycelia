@@ -17,7 +17,7 @@ class WebSocketServer:
         self.clients = set()
         self.clients_lock = asyncio.Lock()
         self.console_loop = ConsoleLoop(self)
-        self.server_id = "SERVER-0E990F"
+        self.server_id = "SERVER-000000"
         self.payload_handlers: Dict[str, PayloadHandler] = {}
 
     def build_payload_dict(
