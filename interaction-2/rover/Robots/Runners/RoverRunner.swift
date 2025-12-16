@@ -41,7 +41,12 @@ class RoverRunner {
         //------------------------------------------------------
         // 1) Configure SyncsControllerConfig (callbacks)
         //------------------------------------------------------
-        var cfg = SyncsControllerConfig(deviceSelector: .anyRVR)
+        // Use specific device name if provided, otherwise connect to any RVR
+        let deviceSelector: SyncsDeviceSelector = robot.bluetoothName.isEmpty
+            ? .anyRVR
+            : .specificRVR(name: robot.bluetoothName)
+
+        var cfg = SyncsControllerConfig(deviceSelector: deviceSelector)
 
         cfg.stateDidChangeCallback = { [weak self] state in
             guard let self = self else { return }

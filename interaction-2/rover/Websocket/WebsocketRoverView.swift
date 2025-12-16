@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct WebsocketView: View {
+struct WebsocketRoverView: View {
     
     // MARK: - State
     
@@ -28,7 +28,7 @@ struct WebsocketView: View {
         VStack(spacing: 20) {
             
             // ===== HEADER =====
-            Text("🌐 Contrôle WebSocket")
+            Text("🌐 Contrôle WebSocket du Rover")
                 .font(.largeTitle)
                 .fontWeight(.bold)
             
@@ -77,26 +77,26 @@ struct WebsocketView: View {
             }
             .padding(.horizontal)
             
-            // ===== CONNEXION ROBOT =====
-            if wsManager?.isConnected == true {
-                VStack(spacing: 12) {
-                    HStack {
-                        Image(systemName: robot?.isConnected == true ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
-                            .foregroundColor(robot?.isConnected == true ? .green : .gray)
-                        Text(robot?.isConnected == true ? "Robot connecté" : "Robot déconnecté")
-                            .font(.headline)
+            // ===== CONNEXION ROBOT (indépendant du WebSocket) =====
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: robot?.isConnected == true ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
+                        .foregroundColor(robot?.isConnected == true ? .green : .gray)
+                    Text(robot?.isConnected == true ? "Robot connecté" : "Robot déconnecté")
+                        .font(.headline)
+                }
+
+                if robot == nil {
+                    Button(action: connectRobot) {
+                        Text("Connecter le Robot")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.orange)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
-                    
-                    if robot == nil {
-                        Button(action: connectRobot) {
-                            Text("Lier le Robot")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    } else if robot?.isConnected == false {
+                } else if robot?.isConnected == false {
+                    HStack(spacing: 12) {
                         Button(action: { robot?.connect() }) {
                             Text("Reconnecter le Robot")
                                 .frame(maxWidth: .infinity)
@@ -105,58 +105,47 @@ struct WebsocketView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
+                        Button(action: disconnectRobot) {
+                            Text("Supprimer")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.gray)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
                     }
-                    
-                    // SUPPRIMÉ : Le Toggle "Contrôle via WebSocket"
-                    // Si on est ici (WS connecté + Robot connecté), le contrôle est actif par défaut.
-                    if robot?.isConnected == true {
-                        Text("✅ Pilotage distant actif")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                            .padding(.top, 4)
+                } else {
+                    HStack(spacing: 12) {
+                        Button(action: { robot?.disconnect(); controller = nil }) {
+                            Text("Déconnecter le Robot")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+                        Button(action: disconnectRobot) {
+                            Text("Supprimer")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.gray)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
                     }
                 }
-                .padding()
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(12)
-            }
-            
-            // ===== COMMANDES DE TEST (Envoyées via WS) =====
-            if wsManager?.isConnected == true {
-                VStack(spacing: 12) {
-                    Text("🎮 Envoi de commandes (Via WS)")
-                        .font(.headline)
-                    
-                    HStack(spacing: 10) {
-                        Button("⬆️ Avant") {
-                            sendTestCommand(.int(100), slug: "forward")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        
-                        Button("⬇️ Arrière") {
-                            sendTestCommand(.int(80), slug: "backward")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        
-                        Button("🛑 Stop") {
-                            sendTestCommand(.bool(true), slug: "stop")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    
-                    // Ajout des LEDs pour tester
-                    HStack(spacing: 10) {
-                         Button("🔴 R") { sendTestCommand(.bool(true), slug: "led-red") }
-                         Button("🟢 G") { sendTestCommand(.bool(true), slug: "led-green") }
-                         Button("🔵 B") { sendTestCommand(.bool(true), slug: "led-blue") }
-                         Button("⚫️ Off") { sendTestCommand(.bool(true), slug: "led-off") }
-                    }
-                    .buttonStyle(.bordered)
+
+                // Indicateur de pont actif seulement si WS connecté + robot connecté
+                if (wsManager?.isConnected == true) && (robot?.isConnected == true) {
+                    Text("✅ Pilotage distant actif (pont WebSocket ↔︎ Robot)")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                        .padding(.top, 4)
                 }
-                .padding()
-                .background(Color.purple.opacity(0.1))
-                .cornerRadius(12)
             }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(12)
             
             // ===== ÉTAT & LOGS =====
             if wsManager != nil {
@@ -209,24 +198,20 @@ struct WebsocketView: View {
         
         let newManager = WebSocketManager(serverURL: serverURL, deviceId: deviceId)
         
-        // Callback de changement d'état (pour rafraichir la vue)
-        newManager.onConnectionChanged = { _ in
-            // SwiftUI rafraichira automatiquement grâce à @Observable ou les @State,
-            // mais ici on s'assure que la vue sait que ça a changé.
-        }
+        // Callbacks de connexion pour (re)créer le pont si nécessaire
+        setupWSCallbacks(newManager)
         
         self.wsManager = newManager
         newManager.connect()
+        // Si le robot est déjà prêt, tente de créer le pont
+        refreshBridge()
     }
     
     private func disconnectWebSocket() {
         wsManager?.disconnect()
-        // On ne nil pas wsManager tout de suite si on veut garder les logs,
-        // mais pour une déconnexion propre :
-        wsManager = nil
+        // On garde le robot indépendant du WS
         controller = nil
-        robot?.disconnect()
-        robot = nil
+        wsManager = nil
     }
     
     private func connectRobot() {
@@ -246,20 +231,39 @@ struct WebsocketView: View {
         self.robot = newRobot
         newRobot.connect()
         
-        // Crée le contrôleur (Le pont entre WS et Robot)
-        if let wsManager = wsManager {
+        // Crée le contrôleur (pont) si WS déjà connecté
+        if let wsManager = wsManager, wsManager.isConnected {
             controller = RobotWebSocketController(robot: newRobot, wsManager: wsManager)
-            // PLUS DE configuration .isEnabled ici
         }
     }
-    
-    private func sendTestCommand(_ value: PayloadValue, slug: String) {
-        // Envoie la commande au serveur, qui la renverra (probablement à nous-même si target = self
-        // ou au robot si l'ID correspond).
-        wsManager?.sendCommand(slug: slug, value: value, receiverId: targetDeviceId)
+
+    private func disconnectRobot() {
+        controller = nil
+        robot?.disconnect()
+        robot = nil
+    }
+
+    // Recrée/retire le pont en fonction des connexions
+    private func refreshBridge() {
+        if let r = robot, r.isConnected, let ws = wsManager, ws.isConnected {
+            controller = RobotWebSocketController(robot: r, wsManager: ws)
+        } else {
+            controller = nil
+        }
+    }
+
+    // Hook dans connectWebSocket pour gérer le pont dynamiquement
+    private func setupWSCallbacks(_ manager: WebSocketManager) {
+        manager.onConnectionChanged = { isConnected in
+            if !isConnected {
+                controller = nil
+            } else {
+                refreshBridge()
+            }
+        }
     }
 }
 
 #Preview {
-    WebsocketView()
+    WebsocketRoverView()
 }

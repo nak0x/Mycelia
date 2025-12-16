@@ -57,9 +57,9 @@ final class SpheroController {
             activity (Syncs.SetMainLED, [name.color]) { val in
                 exec {
                     let color: SyncsColor = val.color
-                    
+
                     self.context.logInfo("SetMainLED \(color)")
-                    if self.context.config.deviceSelector == .anyRVR {
+                    if self.context.config.deviceSelector.isRVR {
                         val.id = self.endpoint.send(SetAllLEDsRequest(mapping: [SyncsRVRLEDs.all: color]))
                     }
                     else {
@@ -72,9 +72,9 @@ final class SpheroController {
             activity (Syncs.SetBackLED, [name.brightness]) { val in
                 exec {
                     let brightness: SyncsBrightness = val.brightness
-                    
+
                     self.context.logInfo("SetLBackLED \(brightness)")
-                    if self.context.config.deviceSelector == .anyRVR {
+                    if self.context.config.deviceSelector.isRVR {
                         val.id = self.endpoint.send(SetAllLEDsRequest(mapping: [.breaklight: SyncsColor(brightness: brightness)]))
                     }
                     else {
@@ -219,7 +219,7 @@ final class SpheroController {
             }
 
             activity (Syncs.SensorStreamer, [name.frequency, name.sensors], [name.sample]) { val in
-                `if` { self.context.config.deviceSelector == .anyRVR } then: {
+                `if` { self.context.config.deviceSelector.isRVR } then: {
                     run (name.SensorStreamerRVR_, [val.frequency, val.sensors], [val.loc.sample])
                 } else: {
                     run (name.SensorStreamerMini_, [val.frequency, val.sensors], [val.loc.sample])
@@ -245,7 +245,7 @@ final class SpheroController {
             }
             
             activity (name.StopSensorStreaming_, []) { val in
-                `if` { self.context.config.deviceSelector == .anyRVR } then: {
+                `if` { self.context.config.deviceSelector.isRVR } then: {
                     run (name.StopSensorStreamingRVR_, [])
                 } else: {
                     run (name.StopSensorStreamingMini_, [])

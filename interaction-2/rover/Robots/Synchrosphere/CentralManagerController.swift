@@ -94,11 +94,21 @@ final class CentralManagerController : NSObject, CBCentralManagerDelegate {
 }
 
 private extension SyncsDeviceSelector {
-    var namePrefix: String {
+    var namePrefix: String? {
         switch self {
         case .anyRVR: return "RV-"
         case .anyMini: return "SM-"
         case .anyBolt: return "SB-"
+        case .specificRVR, .specificMini, .specificBolt: return nil
+        }
+    }
+
+    var specificName: String? {
+        switch self {
+        case .specificRVR(let name): return name
+        case .specificMini(let name): return name
+        case .specificBolt(let name): return name
+        case .anyRVR, .anyMini, .anyBolt: return nil
         }
     }
 }
@@ -108,7 +118,18 @@ private extension CBPeripheral {
         guard let name = name else {
             return false
         }
-        return name.hasPrefix(deviceSelector.namePrefix)
+
+        // If a specific name is required, match exactly
+        if let specificName = deviceSelector.specificName {
+            return name == specificName
+        }
+
+        // Otherwise, match by prefix
+        if let prefix = deviceSelector.namePrefix {
+            return name.hasPrefix(prefix)
+        }
+
+        return false
     }
 }
 

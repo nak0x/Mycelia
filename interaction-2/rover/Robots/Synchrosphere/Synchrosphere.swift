@@ -12,9 +12,26 @@ public enum SyncsDeviceSelector {
 
     /// Selects any Sphero Mini around. Does *not* prevent a robot to be selected multiple times.
     case anyMini
-    
+
     /// Selects any Spero Bolt around. Does *not* prevent a robot to be selected multiple times.
     case anyBolt
+
+    /// Selects a specific RVR by its full Bluetooth name (e.g., "RV-B456").
+    case specificRVR(name: String)
+
+    /// Selects a specific Mini by its full Bluetooth name (e.g., "SM-1234").
+    case specificMini(name: String)
+
+    /// Selects a specific Bolt by its full Bluetooth name (e.g., "SB-0994").
+    case specificBolt(name: String)
+
+    /// Returns true if this selector targets an RVR (specific or any).
+    public var isRVR: Bool {
+        switch self {
+        case .anyRVR, .specificRVR: return true
+        default: return false
+        }
+    }
 }
 
 /// Provides information about the progress of a controller and its controlled robot.
