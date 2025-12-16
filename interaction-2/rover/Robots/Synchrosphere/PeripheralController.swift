@@ -163,9 +163,12 @@ final class PeripheralController : NSObject, CBPeripheralDelegate, Endpoint, Log
 private extension SyncsDeviceSelector {
     var needsTheForce: Bool {
         switch self {
-        case .anyRVR: return false
-        case .anyMini: return true
-        case .anyBolt: return true
+        case .anyRVR, .specificRVR:
+            return false
+        case .anyMini, .specificMini:
+            return true
+        case .anyBolt, .specificBolt:
+            return true
         }
     }
 }

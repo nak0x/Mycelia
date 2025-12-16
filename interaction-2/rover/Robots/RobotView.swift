@@ -112,14 +112,6 @@ struct RobotView: View {
             Spacer()
         }
         .padding()
-//        .onAppear {
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-//                // Ne se connecte que si pas déjà connecté
-//                if robot == nil || robot?.isConnected == false {
-//                    createAndConnectRobot()
-//                }
-//            }
-//        }
     }
 
     // MARK: - Création + Connexion du robot

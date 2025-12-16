@@ -35,7 +35,7 @@ final class Requests : SyncsRequests, SyncsLogging, LoggingProviderAccessor {
     
     func setMainLED(to color: SyncsColor) {
         logInfo("requestSetMainLED \(color)")
-        if deviceSelector == .anyRVR {
+        if deviceSelector.isRVR {
             endpoint.sendOneway(SetAllLEDsRequest(mapping: [SyncsRVRLEDs.all: color]))
         }
         else {
@@ -45,7 +45,7 @@ final class Requests : SyncsRequests, SyncsLogging, LoggingProviderAccessor {
     
     func setBackLED(to brightness: SyncsBrightness) {
         logInfo("requestSetBackLED \(brightness)")
-        if deviceSelector == .anyRVR {
+        if deviceSelector.isRVR {
             endpoint.sendOneway(SetAllLEDsRequest(mapping: [.breaklight: SyncsColor(brightness: brightness)]))
         }
         else {
@@ -69,7 +69,7 @@ final class Requests : SyncsRequests, SyncsLogging, LoggingProviderAccessor {
         
     func stopSensorStreaming() {
         logInfo("requestStopSensorStreaming")
-        if deviceSelector == .anyRVR {
+        if deviceSelector.isRVR {
             endpoint.sendOneway(SensorCommand.stopStreamingService, to: 2)
             endpoint.sendOneway(SensorCommand.clearStreamingService, to: 2)
         }

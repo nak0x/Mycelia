@@ -38,7 +38,12 @@ final class SpheroRunner {
         //------------------------------------------------------
         // 1) Configure controller (logs + callbacks)
         //------------------------------------------------------
-        var cfg = SyncsControllerConfig(deviceSelector: .anyBolt)
+        // Use specific device name if provided, otherwise connect to any Bolt
+        let deviceSelector: SyncsDeviceSelector = robot.bluetoothName.isEmpty
+            ? .anyBolt
+            : .specificBolt(name: robot.bluetoothName)
+
+        var cfg = SyncsControllerConfig(deviceSelector: deviceSelector)
         cfg.logLevel = .info
 
         cfg.stateDidChangeCallback = { [weak self] state in

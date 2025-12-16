@@ -10,12 +10,16 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         TabView {
-            Tab("Robot", systemImage: "robotic.vacuum") {
-                RobotView()
+//            Tab("Robot", systemImage: "robotic.vacuum") {
+//                RobotView()
+//            }
+            
+            Tab ("Rover", systemImage: "wifi") {
+                WebsocketRoverView()
             }
             
-            Tab ("Websocket", systemImage: "wifi") {
-                WebsocketView()
+            Tab ("Sphero", systemImage: "wifi") {
+                WebsocketSpheroView()
             }
         }
     }
