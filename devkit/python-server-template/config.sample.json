@@ -6,6 +6,10 @@
     "ws_path": "/ws"
   },
   "routes": [
-    { "method": "GET", "path": "/health", "controller": "app.controllers.core.CoreController", "action": "health" }
-  ]
+    { "method": "GET", "path": "/health", "controller": "app.http_controllers.core.CoreController", "action": "health" },
+    { "method": "POST", "path": "/api/broadcast", "controller": "app.http_controllers.core.CoreController", "action": "broadcast" }
+  ],
+  "ws_payload_routes": {
+    "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" }
+  }
 }

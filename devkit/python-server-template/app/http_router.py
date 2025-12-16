@@ -1,7 +1,7 @@
 from aiohttp import web
 from app.config import AppConfig
 from app.import_utils import import_symbol
-from app.controllers.base import BaseController
+from app.http_controllers.base import HttpController
 
 
 def mount_routes(app: web.Application, cfg: AppConfig) -> None:
@@ -11,7 +11,7 @@ def mount_routes(app: web.Application, cfg: AppConfig) -> None:
       - instantiates it once (singleton per class)
       - binds HTTP routes to controller methods
     """
-    controller_cache: dict[str, BaseController] = {}
+    controller_cache: dict[str, HttpController] = {}
 
     for r in cfg.routes:
         ControllerClass = import_symbol(r.controller)
@@ -22,7 +22,7 @@ def mount_routes(app: web.Application, cfg: AppConfig) -> None:
         controller = controller_cache[r.controller]
 
         if not hasattr(controller, r.action):
-            raise RuntimeError(f"Controller '{r.controller}' has no action '{r.action}'")
+            raise RuntimeError(f"HttpController '{r.controller}' has no action '{r.action}'")
 
         handler = getattr(controller, r.action)
 

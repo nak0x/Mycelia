@@ -5,7 +5,6 @@ from typing import Any
 def import_symbol(path: str) -> Any:
     """
     Import a class or symbol from a dotted path.
-    Example: "app.controllers.sample.SampleController"
     """
     if "." not in path:
         raise ValueError(f"Invalid import path: {path}")

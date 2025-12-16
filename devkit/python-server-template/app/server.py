@@ -1,10 +1,10 @@
 from aiohttp import web, WSMsgType
 from app.config import AppConfig
 from app.ws_hub import WsHub
-from app.router import mount_routes
+from app.http_router import mount_routes
 from app.frames.parser import FrameParser
 from app.frames.factory import error_frame_json
-
+from app.ws_router import WsPayloadDispatcher
 
 async def ws_handler(request: web.Request) -> web.WebSocketResponse:
     hub: WsHub = request.app["hub"]
@@ -19,20 +19,28 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
             if msg.type == WSMsgType.TEXT:
                 raw = msg.data
 
-                # Validate incoming WS message as a Frame
+                # validate + parse
                 try:
-                    FrameParser(raw)  # validate only
+                    parser = FrameParser(raw)
+                    frame = parser.parse()
                 except Exception as e:
-                    # Send error frame back to sender (and do not rebroadcast)
                     await ws.send_str(error_frame_json(
-                        sender="SERVER",
+                        sender=request.app["server_id"],
                         receiver="UNKNOWN",
                         message=f"Invalid frame: {e}",
                         connection_status=400
                     ))
                     continue
 
-                # Rebroadcast valid frames to other clients
+                # If the frame targets THIS server: dispatch each payload by slug
+                if frame.metadata.get("receiverId") == request.app["server_id"]:
+                    dispatcher = request.app["ws_payload_dispatcher"]
+
+                    # Call handler for each payload
+                    for payload in frame.payloads:
+                        await dispatcher.dispatch_payload(frame, payload, ws)
+
+                # Rebroadcast original frame to other clients
                 await hub.broadcast(raw, sender=ws)
 
             elif msg.type == WSMsgType.ERROR:
@@ -51,6 +59,7 @@ def build_app(cfg: AppConfig) -> web.Application:
     # shared hub
     app["hub"] = WsHub()
     app["server_id"] = cfg.server.id
+    app["ws_payload_dispatcher"] = WsPayloadDispatcher(app, cfg)
 
     # websocket route
     app.router.add_get(cfg.server.ws_path, ws_handler)

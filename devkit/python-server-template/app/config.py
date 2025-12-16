@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import List
+from typing import List, Dict
 
 
 @dataclass
@@ -15,14 +15,19 @@ class ServerConfig:
 class RouteConfig:
     method: str
     path: str
-    controller: str   # import path: "app.controllers.sample.SampleController"
-    action: str       # method name on the controller instance
+    controller: str
+    action: str
 
+@dataclass
+class WsPayloadRouteConfig:
+    controller: str
+    action: str
 
 @dataclass
 class AppConfig:
     server: ServerConfig
     routes: List[RouteConfig]
+    ws_payload_routes: Dict[str, WsPayloadRouteConfig]
 
 
 def load_config(path: str) -> AppConfig:
@@ -31,6 +36,15 @@ def load_config(path: str) -> AppConfig:
 
     s = raw.get("server", {})
     routes = raw.get("routes", [])
+    ws_payload_routes_raw = raw.get("ws_payload_routes", {})
+
+    ws_payload_routes = {
+        slug: WsPayloadRouteConfig(
+            controller=cfg["controller"],
+            action=cfg["action"]
+        )
+        for slug, cfg in ws_payload_routes_raw.items()
+    }
 
     return AppConfig(
         server=ServerConfig(
@@ -48,4 +62,5 @@ def load_config(path: str) -> AppConfig:
             )
             for r in routes
         ],
+        ws_payload_routes=ws_payload_routes
     )

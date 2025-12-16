@@ -1,10 +1,10 @@
 from aiohttp import web
-from app.controllers.base import BaseController
+from app.http_controllers.base import HttpController
 from app.frames.parser import parse_frame_from_request
 from app.frames.factory import ok_frame, error_frame_json
 
 
-class CoreController(BaseController):
+class CoreController(HttpController):
 
     async def health(self, request: web.Request) -> web.Response:
         # Health does not need Frame input, but still returns a Frame-like JSON if you want.
@@ -22,16 +22,15 @@ class CoreController(BaseController):
             frame = await parse_frame_from_request(request)
         except Exception as e:
             return web.Response(
-                text=error_frame_json("SERVER", "UNKNOWN", f"Invalid frame: {e}", 400),
+                text=self.build_frame("UNKNOWN", "error", "string", str(e), 400),
                 status=400,
                 content_type="application/json"
             )
 
         sent = await self.hub.broadcast(frame.raw_json)
-        return web.json_response(ok_frame(
-            sender=self.server_id,
-            receiver=frame.metadata.get("senderId", "UNKNOWN"),
-            payload=[
-                {"datatype": "integer", "value": sent, "slug": "ws_sent"}
-            ]
+        return web.json_response(self.build_frame(
+            receiver_id=frame.metadata.get("senderId", "UNKNOWN"),
+            slug="ws_sent",
+            datatype="int",
+            value=sent
         ))
