@@ -4,11 +4,11 @@ from neopixel import NeoPixel
 from framework.utils.frames.frame import Frame
 
 class LedStrip:
-    def __init__(self, pin, pixel_num, slug=None, default_color=(255, 255, 255), on_frame_received=None):
+    def __init__(self, pin, pixel_num, slug=None, default_color=(255, 255, 255), on_payload_received=None):
         self.np = NeoPixel(Pin(pin), pixel_num)
         self.slug = slug
         self.default_color = default_color
-        self.on_frame_received_callback = on_frame_received
+        self.on_payload_received_callback = on_payload_received
 
         self.pixels = [(0, 0, 0)] * pixel_num
         self.display()
@@ -74,5 +74,8 @@ class LedStrip:
             return
 
         for payload in frame.payload:
-            if payload.slug == self.slug and self.on_frame_received_callback is not None:
-                self.on_frame_received_callback(self, payload)
+            if payload.slug == self.slug:
+                if self.on_payload_received_callback is not None:
+                    self.on_payload_received_callback(self, payload)
+                elif payload.datatype == "bool":
+                    self.on() if payload.value else self.off()

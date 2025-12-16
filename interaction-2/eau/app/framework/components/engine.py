@@ -1,8 +1,8 @@
-from framework.app import App
 from machine import Pin
+from framework.app import App
 from framework.utils.frames.frame import Frame
 
-class Led:
+class Engine:
     is_on = False
 
     def __init__(self, pin, slug = None, on_payload_received = None):
