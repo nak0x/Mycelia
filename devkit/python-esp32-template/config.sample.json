@@ -7,7 +7,8 @@
     },
     "websocket": {
         "server": "<server-url>",
-        "reconnect": true
+        "reconnect": true,
+				"debug": false
     },
     "debug": false,
     "slowed": false
