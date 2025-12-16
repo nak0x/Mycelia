@@ -45,24 +45,16 @@ class Robot {
         fatalError("disconnect() must be overridden in the subclass")
     }
 
-    func forward(speed: Int) {
+    func forward(speed: Int, durationS: Int = 1) {
         fatalError("forward() must be overridden in the subclass")
     }
 
-    func backward(speed: Int) {
+    func backward(speed: Int, durationS: Int = 1) {
         fatalError("backward() must be overridden in the subclass")
     }
 
     func turn(degrees: Int) {
         fatalError("turn() must be overridden in the subclass")
-    }
-    
-    func rightFront(speed: Int) {
-        fatalError("rightFront() must be overridden in the subclass")
-    }
-    
-    func rightBack(speed: Int) {
-        fatalError("rightBack() must be overridden in the subclass")
     }
 
     func stop() {
