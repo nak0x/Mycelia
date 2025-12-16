@@ -25,7 +25,7 @@ class SampleController(BaseController):
 
         if led_value is None:
             return web.json_response(ok_frame(
-                sender="SERVER",
+                sender=self.server_id,
                 receiver=frame.metadata.get("senderId", "UNKNOWN"),
                 connection_status=422,
                 payload=[{"datatype": "string", "value": "Missing payload slug=led", "slug": "warning"}]
@@ -35,7 +35,7 @@ class SampleController(BaseController):
         sent = await self.hub.broadcast(outgoing)
 
         return web.json_response(ok_frame(
-            sender="SERVER",
+            sender=self.server_id,
             receiver=frame.metadata.get("senderId", "UNKNOWN"),
             payload=[
                 {"datatype": "boolean", "value": led_value, "slug": "led"},
@@ -46,7 +46,7 @@ class SampleController(BaseController):
     def _build_led_frame(self, value: bool) -> str:
         payload = {
             "metadata": {
-                "senderId": "SERVER-0E990F",
+                "senderId": self.server_id,
                 "timestamp": time.time(),
                 "messageId": f"MSG-{datetime.now().isoformat()}-0001",
                 "type": "ws-data",

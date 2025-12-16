@@ -1,0 +1,11 @@
+{
+  "server": {
+    "id": "SERVER-000000",
+    "host": "0.0.0.0",
+    "port": 8000,
+    "ws_path": "/ws"
+  },
+  "routes": [
+    { "method": "GET", "path": "/health", "controller": "app.controllers.core.CoreController", "action": "health" }
+  ]
+}

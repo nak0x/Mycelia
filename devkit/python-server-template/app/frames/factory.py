@@ -44,3 +44,25 @@ def ok_frame(
         },
         "payload": payload or [],
     }
+
+def frame(
+    sender: str,
+    receiver: str,
+    slug: str,
+    datatype: str,
+    value: Any,
+    connection_status: int = 200,
+) -> Dict[str, Any]:
+    return {
+        "metadata": {
+            "senderId": sender,
+            "timestamp": time.time(),
+            "messageId": f"MSG-{datetime.now().isoformat()}",
+            "type": "ws-data",
+            "receiverId": receiver,
+            "status": {"connection": connection_status},
+        },
+        "payload": [
+            {"datatype": datatype, "value": value, "slug": slug}
+        ],
+    }

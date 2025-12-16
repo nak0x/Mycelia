@@ -17,3 +17,7 @@ class BaseController:
     @property
     def hub(self) -> WsHub:
         return self.app["hub"]
+    
+    @property
+    def server_id(self) -> str:
+        return self.app["server_id"]

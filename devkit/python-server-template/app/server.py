@@ -50,6 +50,7 @@ def build_app(cfg: AppConfig) -> web.Application:
 
     # shared hub
     app["hub"] = WsHub()
+    app["server_id"] = cfg.server.id
 
     # websocket route
     app.router.add_get(cfg.server.ws_path, ws_handler)

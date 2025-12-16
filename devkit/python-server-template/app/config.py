@@ -5,6 +5,7 @@ from typing import List
 
 @dataclass
 class ServerConfig:
+    id: str
     host: str
     port: int
     ws_path: str
@@ -33,6 +34,7 @@ def load_config(path: str) -> AppConfig:
 
     return AppConfig(
         server=ServerConfig(
+            id=s.get("id", "SERVER-000000"),
             host=s.get("host", "0.0.0.0"),
             port=int(s.get("port", 8000)),
             ws_path=s.get("ws_path", "/ws"),

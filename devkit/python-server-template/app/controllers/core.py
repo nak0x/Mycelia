@@ -29,7 +29,7 @@ class CoreController(BaseController):
 
         sent = await self.hub.broadcast(frame.raw_json)
         return web.json_response(ok_frame(
-            sender="SERVER",
+            sender=self.server_id,
             receiver=frame.metadata.get("senderId", "UNKNOWN"),
             payload=[
                 {"datatype": "integer", "value": sent, "slug": "ws_sent"}
