@@ -25,12 +25,12 @@ final class Sphero: Robot {
         runner?.disconnect()
     }
 
-    override func forward(speed: Int) {
-        runner?.send(.forward(speed: speed))
+    override func forward(speed: Int, durationS: Int = 1) {
+        runner?.send(.forward(speed: speed, durationS: durationS))
     }
 
-    override func backward(speed: Int) {
-        runner?.send(.backward(speed: speed))
+    override func backward(speed: Int, durationS: Int = 1) {
+        runner?.send(.backward(speed: speed, durationS: durationS))
     }
 
     override func turn(degrees: Int) {

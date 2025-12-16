@@ -25,20 +25,18 @@ final class Rover: Robot {
         runner?.disconnect()
     }
 
-    override func forward(speed: Int) {
-        runner?.send(.forward(speed: speed, durationS: 1))
+    override func forward(speed: Int, durationS: Int = 1) {
+        runner?.send(.forward(speed: speed, durationS: durationS))
     }
 
-    override func backward(speed: Int) {
-        runner?.send(.backward(speed: speed, durationS: 2))
+    override func backward(speed: Int, durationS: Int = 1) {
+        runner?.send(.backward(speed: speed, durationS: durationS))
     }
 
-    /// Here we update the "logical" heading
-    /// and let the runner interpret it as it sees fit.
     override func turn(degrees: Int) {
         heading = (heading + degrees) % 360
         if heading < 0 { heading += 360 }
-        runner?.send(.turn(heading: heading, durationS: 1))
+        runner?.send(.turn(heading: heading))
     }
 
     override func stop() {

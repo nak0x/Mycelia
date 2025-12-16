@@ -187,10 +187,11 @@ class WebSocketManager {
     func sendCommand(slug: String, value: PayloadValue, receiverId: String) {
         let datatype: String
         switch value {
-        case .bool: datatype = "bool"
-        case .int: datatype = "int"
-        case .float: datatype = "float"
-        case .string: datatype = "string"
+            case .bool: datatype = "bool"
+            case .int: datatype = "int"
+            case .float: datatype = "float"
+            case .string: datatype = "string"
+            case .intArray: datatype = "iarray"
         }
         
         let payload = Payload(datatype: datatype, value: value, slug: slug)
