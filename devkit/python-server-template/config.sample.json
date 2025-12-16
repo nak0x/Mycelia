@@ -1,0 +1,15 @@
+{
+  "server": {
+    "id": "SERVER-000000",
+    "host": "0.0.0.0",
+    "port": 8000,
+    "ws_path": "/ws"
+  },
+  "routes": [
+    { "method": "GET", "path": "/health", "controller": "app.http_controllers.core.CoreController", "action": "health" },
+    { "method": "POST", "path": "/api/broadcast", "controller": "app.http_controllers.core.CoreController", "action": "broadcast" }
+  ],
+  "ws_payload_routes": {
+    "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" }
+  }
+}

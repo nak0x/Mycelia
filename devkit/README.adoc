@@ -1,0 +1,16 @@
+= Devkit Mycelia
+
+This dev kit contain template project used throught the whole experience.
+
+== `python-esp32-template`
+
+This template include our esp32 micro python super duper easy framework that allow one line of code for a whole part of the experience.
+
+== `python-server-template`
+
+Provide a generic websocket + http receiver server that is ment to broadcast using our frame system.
+It also provide easy implementation for an external command.
+
+== `z_cpp`
+
+Old project view. using Cpp as main language to dev on the esp32. that was a mistake made by the fabulous @Nak0x. Sowwy for that.. ^^'.
