@@ -27,7 +27,7 @@ class ExampleController(Controller):
                 slug="balance",
                 value=self.balance_status,
                 type="boolean",
-                receiver_id="SERVER-0E990F"
+                receiver_id="SERVER-020201"
             )
 
             self.last_status = self.balance_status
