@@ -19,6 +19,26 @@ class RobotWebSocketController {
         wsManager.onFrameReceived = { [weak self] frame in
             self?.handleFrame(frame)
         }
+        
+        robot.onImpact = { [weak self] in
+            self?.sendImpactFrame()
+        }
+    }
+    
+    private func sendImpactFrame() {
+        guard robot.isConnected else { return }
+        
+        let payload = Payload.bool(true, slug: "sphero")
+        
+        let frame = Frame(
+            senderId: wsManager.deviceId,
+            receiverId: "SERVER-020201",
+            type: "ws-data",
+            payloads: [payload]
+        )
+        
+        wsManager.sendFrame(frame)
+        print("💥 Impact envoyé via WebSocket (sphero: true)")
     }
     
     private func handleFrame(_ frame: Frame) {

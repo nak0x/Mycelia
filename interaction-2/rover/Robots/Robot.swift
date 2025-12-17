@@ -34,6 +34,7 @@ class Robot {
     var onDisconnect: (() -> Void)?
     var onSensorUpdate: ((SensorSample) -> Void)?
     var onBatteryUpdate: ((BatteryState) -> Void)?
+    var onImpact: (() -> Void)?
 
 
     // MARK: - Init
@@ -121,6 +122,7 @@ extension Robot {
                     impactCount += 1
                     lastImpactTime = now
                     print("✅ VALID IMPACT! Stable after 1s. Count: \(impactCount)")
+                    onImpact?()
                 } else {
                     print("❌ INVALID IMPACT: Robot still moving (v=\(v))")
                 }
