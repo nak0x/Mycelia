@@ -23,7 +23,7 @@ class WebSocketManager:
         path = websocket.request.path if hasattr(websocket, 'request') else websocket.path
         
         async with self.lock:
-            if "/esp32" in path.lower():
+            if "/esp" in path.lower():
                 self.esp32_clients.add(websocket)
                 client_type = "ESP32"
                 print(f"   💡 Client auto-identifié comme ESP32 (via path: {path})")
@@ -33,7 +33,7 @@ class WebSocketManager:
                 print(f"   📱 Client auto-identifié comme iOS (via path: {path})")
             else:
                 print(f"   ⚠️ Client non identifié - path: {path}")
-                print(f"   💡 Conseil: connectez-vous à ws://server:8000/esp32 ou ws://server:8000/ios")
+                print(f"   💡 Conseil: connectez-vous à ws://server:8000/esp ou ws://server:8000/ios")
         
         return client_type, client_info
 
