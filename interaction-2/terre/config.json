@@ -6,7 +6,7 @@
         "timeout": 2000
     },
     "websocket": {
-        "server": "ws://192.168.10.230:8000/esp32",
+        "server": "ws://192.168.10.230:8000/esp",
         "reconnect": true
     },
     "debug": false,
