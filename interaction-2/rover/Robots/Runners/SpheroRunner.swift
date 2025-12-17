@@ -82,7 +82,8 @@ final class SpheroRunner {
                 "cmdDir",
                 "cmdSeconds",
                 "doRollForSeconds",
-                "doStop"
+                "doStop",
+                "sample"
             ]) { val in
 
                 //------------------------------------------------------
@@ -96,122 +97,140 @@ final class SpheroRunner {
 
                     val.doRollForSeconds = false
                     val.doStop = false
+                    val.sample = SyncsSample.unset
                 }
-
-                //------------------------------------------------------
-                // Main loop
-                //------------------------------------------------------
-                `repeat` {
-
-                    //------------------------------------------------------
-                    // 1) SWIFT → PAPPE binding (allowed here)
-                    //------------------------------------------------------
-                    exec {
-                        // Reset flags
-                        val.doRollForSeconds = false
-                        val.doStop = false
-
-                        guard let cmd = self.pendingCommand else { return }
-
-                        // Helpers (Swift only)
-                        func clampSpeed(_ s: Int) -> SyncsSpeed {
-                            let v = max(0, min(255, s))
-                            return SyncsSpeed(UInt8(v))
-                        }
-
-                        func clampHeading(_ h: Int) -> SyncsHeading {
-                            // normalize to 0...359
-                            let norm = ((h % 360) + 360) % 360
-                            return SyncsHeading(UInt16(norm))
-                        }
-
-                        func msToSeconds(_ ms: Int) -> Int {
-                            // Synchrosphere offers RollForSeconds(seconds: Int)
-                            // Keep it simple: minimum 1 second.
-                            let clamped = max(1, ms)
-                            let secs = Int(ceil(Double(clamped) / 1000.0))
-                            return max(1, secs)
-                        }
-
-                        // Defaults
-                        var speed: SyncsSpeed = 0
-                        var heading: SyncsHeading = clampHeading(self.robot.heading)
-                        var dir: SyncsDir = .forward
-                        var seconds: Int = 1
-                        var shouldRoll = false
-                        var shouldStop = false
-
-                        switch cmd {
-
-                        case .forward(let s, let durationMs):
-                            speed = clampSpeed(s)
-                            heading = clampHeading(self.robot.heading)
-                            dir = SyncsDir.forward
-                            seconds = msToSeconds(durationMs)
-                            shouldRoll = true
-
-                        case .backward(let s, let durationMs):
-                            speed = clampSpeed(s)
-                            heading = clampHeading(self.robot.heading)
-                            dir = SyncsDir.backward
-                            seconds = msToSeconds(durationMs)
-                            shouldRoll = true
-
-                        case .turn(let headingDeg, let durationMs):
-                            // Simple turning command: speed 0 towards heading.
-                            // (The actual behavior depends on device firmware.)
-                            speed = clampSpeed(0)
-                            heading = clampHeading(headingDeg)
-                            dir = SyncsDir.forward
-                            seconds = msToSeconds(durationMs)
-                            shouldRoll = true
-
-                        case .stop:
-                            heading = clampHeading(self.robot.heading)
-                            shouldStop = true
-
-                        case .setLED:
-                            // Ignored for now (Bolt has matrix LEDs)
-                            break
-                        }
-
-                        // Write Pappe vars
-                        val.cmdSpeed = speed
-                        val.cmdHeading = heading
-                        val.cmdDir = dir
-                        val.cmdSeconds = seconds
-                        val.doRollForSeconds = shouldRoll
-                        val.doStop = shouldStop
-
-                        // Consume command
-                        self.pendingCommand = nil
+                
+                cobegin {
+                    with {
+                        // Stream sensors at 10Hz
+                        run(Syncs.SensorStreamer, [
+                            10,
+                            SyncsSensors([.acceleration, .location, .velocity, .yaw])
+                        ], [val.loc.sample])
                     }
-
-                    //------------------------------------------------------
-                    // 2) PAPPE execution (no Swift here)
-                    //------------------------------------------------------
-
-                    `if` { val.doRollForSeconds as Bool } then: {
-                        run(Syncs.RollForSeconds, [
-                            val.cmdSpeed,
-                            val.cmdHeading,
-                            val.cmdDir,
-                            val.cmdSeconds
-                        ])
+                    
+                    with {
+                        //------------------------------------------------------
+                        // Main control loop
+                        //------------------------------------------------------
+                        `repeat` {
+                            
+                            //------------------------------------------------------
+                            // 1) SWIFT → PAPPE binding (allowed here)
+                            //------------------------------------------------------
+                            exec {
+                                let rawSample: Any? = val.sample
+                                if let s = rawSample as? SyncsSample, s.timestamp > 0 {
+                                    self.robot._updateFrom(syncsSample: s)
+                                }
+                                
+                                // Reset flags
+                                val.doRollForSeconds = false
+                                val.doStop = false
+                                
+                                guard let cmd = self.pendingCommand else { return }
+                                
+                                // Helpers (Swift only)
+                                func clampSpeed(_ s: Int) -> SyncsSpeed {
+                                    let v = max(0, min(255, s))
+                                    return SyncsSpeed(UInt8(v))
+                                }
+                                
+                                func clampHeading(_ h: Int) -> SyncsHeading {
+                                    // normalize to 0...359
+                                    let norm = ((h % 360) + 360) % 360
+                                    return SyncsHeading(UInt16(norm))
+                                }
+                                
+                                func msToSeconds(_ ms: Int) -> Int {
+                                    // Synchrosphere offers RollForSeconds(seconds: Int)
+                                    // Keep it simple: minimum 1 second.
+                                    let clamped = max(1, ms)
+                                    let secs = Int(ceil(Double(clamped) / 1000.0))
+                                    return max(1, secs)
+                                }
+                                
+                                // Defaults
+                                var speed: SyncsSpeed = 0
+                                var heading: SyncsHeading = clampHeading(self.robot.heading)
+                                var dir: SyncsDir = .forward
+                                var seconds: Int = 1
+                                var shouldRoll = false
+                                var shouldStop = false
+                                
+                                switch cmd {
+                                    
+                                case .forward(let s, let durationMs):
+                                    speed = clampSpeed(s)
+                                    heading = clampHeading(self.robot.heading)
+                                    dir = SyncsDir.forward
+                                    seconds = msToSeconds(durationMs)
+                                    shouldRoll = true
+                                    
+                                case .backward(let s, let durationMs):
+                                    speed = clampSpeed(s)
+                                    heading = clampHeading(self.robot.heading)
+                                    dir = SyncsDir.backward
+                                    seconds = msToSeconds(durationMs)
+                                    shouldRoll = true
+                                    
+                                case .turn(let headingDeg, let durationMs):
+                                    // Simple turning command: speed 0 towards heading.
+                                    // (The actual behavior depends on device firmware.)
+                                    speed = clampSpeed(0)
+                                    heading = clampHeading(headingDeg)
+                                    dir = SyncsDir.forward
+                                    seconds = msToSeconds(durationMs)
+                                    shouldRoll = true
+                                    
+                                case .stop:
+                                    heading = clampHeading(self.robot.heading)
+                                    shouldStop = true
+                                    
+                                case .setLED:
+                                    // Ignored for now (Bolt has matrix LEDs)
+                                    break
+                                }
+                                
+                                // Write Pappe vars
+                                val.cmdSpeed = speed
+                                val.cmdHeading = heading
+                                val.cmdDir = dir
+                                val.cmdSeconds = seconds
+                                val.doRollForSeconds = shouldRoll
+                                val.doStop = shouldStop
+                                
+                                // Consume command
+                                self.pendingCommand = nil
+                            }
+                            
+                            //------------------------------------------------------
+                            // 2) PAPPE execution (no Swift here)
+                            //------------------------------------------------------
+                            
+                            `if` { val.doRollForSeconds as Bool } then: {
+                                run(Syncs.RollForSeconds, [
+                                    val.cmdSpeed,
+                                    val.cmdHeading,
+                                    val.cmdDir,
+                                    val.cmdSeconds
+                                ])
+                            }
+                            
+                            `if` { val.doStop as Bool } then: {
+                                run(Syncs.StopRoll, [
+                                    val.cmdHeading
+                                ])
+                            }
+                            
+                            //------------------------------------------------------
+                            // 3) Loop pacing
+                            //------------------------------------------------------
+                            run(Syncs.WaitMilliseconds, [10])
+                            
+                        } until: { false }
                     }
-
-                    `if` { val.doStop as Bool } then: {
-                        run(Syncs.StopRoll, [
-                            val.cmdHeading
-                        ])
-                    }
-
-                    //------------------------------------------------------
-                    // 3) Loop pacing
-                    //------------------------------------------------------
-                    run(Syncs.WaitMilliseconds, [10])
-
-                } until: { false }
+                }
             }
         }
 

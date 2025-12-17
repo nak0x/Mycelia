@@ -1,9 +1,10 @@
 //
-//  WebsocketView.swift
+//  WebsocketRoverView.swift
 //  IOTTools
 //
 //  Created by Emmanuel Moulin on 29/11/2025.
 //
+//  Redesigned for Premium Dark UI
 
 import SwiftUI
 
@@ -19,175 +20,176 @@ struct WebsocketRoverView: View {
     @State private var robot: Robot?
     @State private var controller: RobotWebSocketController?
     
-    // SUPPRIMÉ : @State private var isRobotControlEnabled: Bool = false
     @State private var showLogs: Bool = false
+    
+    // MARK: - Colors
+    
+    private let bgMain = Color(hex: "151622")
+    private let bgCard = Color(hex: "202434")
+    private let bgInput = Color(hex: "252942")
+    private let accentBlue = Color(hex: "0088FF")
+    private let accentRed = Color(hex: "FF4444")
+    private let textPrimary = Color.white
+    private let textSecondary = Color.white.opacity(0.6)
     
     // MARK: - Body
     
     var body: some View {
-        VStack(spacing: 20) {
+        ZStack {
+            bgMain.ignoresSafeArea()
             
-            // ===== HEADER =====
-            Text("🌐 Contrôle WebSocket du Rover")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            // ===== CONFIGURATION =====
-            VStack(spacing: 12) {
-                TextField("URL du serveur", text: $serverURL)
-                    .textFieldStyle(.roundedBorder)
+            VStack(spacing: 24) {
                 
-                TextField("Device ID (cette app)", text: $deviceId)
-                    .textFieldStyle(.roundedBorder)
+                // ===== HEADER =====
+                VStack(spacing: 8) {
+                    HStack {
+                        Image(systemName: "globe")
+                            .foregroundColor(accentBlue)
+                            .font(.system(size: 24))
+                        Text("Contrôle WebSocket du Rover")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(textPrimary)
+                    }
+                }
+                .padding(.top, 20)
                 
-                TextField("Target Device ID (robot)", text: $targetDeviceId)
-                    .textFieldStyle(.roundedBorder)
-            }
-            .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
-            
-            // ===== CONNEXION WEBSOCKET =====
-            HStack(spacing: 15) {
-                Button(action: connectWebSocket) {
+                // ===== CONFIGURATION =====
+                VStack(spacing: 12) {
+                    CustomTextField(text: $serverURL, placeholder: "Server URL", bg: bgInput, color: textPrimary)
+                    CustomTextField(text: $deviceId, placeholder: "Device ID", bg: bgInput, color: textPrimary)
+                    CustomTextField(text: $targetDeviceId, placeholder: "Target Device ID", bg: bgInput, color: textPrimary)
+                }
+                .padding()
+                .background(bgCard)
+                .cornerRadius(16)
+                
+                // ===== CONNEXION WEBSOCKET =====
+                Button(action: {
+                    if wsManager?.isConnected == true {
+                        disconnectWebSocket()
+                    } else {
+                        connectWebSocket()
+                    }
+                }) {
                     HStack {
                         Image(systemName: wsManager?.isConnected == true ? "wifi" : "wifi.slash")
                         Text(wsManager?.isConnected == true ? "Connecté" : "Connecter")
                     }
+                    .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(wsManager?.isConnected == true ? Color.green : Color.blue)
+                    .background(wsManager?.isConnected == true ? Color.green : accentBlue)
                     .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .cornerRadius(12)
                 }
                 
-                if wsManager?.isConnected == true {
-                    Button(action: disconnectWebSocket) {
-                        HStack {
-                            Image(systemName: "xmark.circle")
-                            Text("Déconnecter")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                }
-            }
-            .padding(.horizontal)
-            
-            // ===== CONNEXION ROBOT (indépendant du WebSocket) =====
-            VStack(spacing: 12) {
-                HStack {
-                    Image(systemName: robot?.isConnected == true ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
-                        .foregroundColor(robot?.isConnected == true ? .green : .gray)
-                    Text(robot?.isConnected == true ? "Robot connecté" : "Robot déconnecté")
-                        .font(.headline)
-                }
-
-                if robot == nil {
-                    Button(action: connectRobot) {
-                        Text("Connecter le Robot")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                } else if robot?.isConnected == false {
-                    HStack(spacing: 12) {
-                        Button(action: { robot?.connect() }) {
-                            Text("Reconnecter le Robot")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        Button(action: disconnectRobot) {
-                            Text("Supprimer")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    }
-                } else {
-                    HStack(spacing: 12) {
-                        Button(action: { robot?.disconnect(); controller = nil }) {
-                            Text("Déconnecter le Robot")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.red)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        Button(action: disconnectRobot) {
-                            Text("Supprimer")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    }
-                }
-
-                // Indicateur de pont actif seulement si WS connecté + robot connecté
-                if (wsManager?.isConnected == true) && (robot?.isConnected == true) {
-                    Text("✅ Pilotage distant actif (pont WebSocket ↔︎ Robot)")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                        .padding(.top, 4)
-                }
-            }
-            .padding()
-            .background(Color.blue.opacity(0.1))
-            .cornerRadius(12)
-            
-            // ===== ÉTAT & LOGS =====
-            if wsManager != nil {
-                VStack(spacing: 8) {
-                    Button(action: { showLogs.toggle() }) {
-                        HStack {
-                            Image(systemName: showLogs ? "chevron.down" : "chevron.right")
-                            Text("Logs (\(wsManager?.logs.count ?? 0))")
-                                .font(.headline)
+                // ===== ROBOT CONTROL & STATS =====
+                VStack(spacing: 16) {
+                    
+                    // Robot Connection Status
+                    HStack {
+                        Image(systemName: robot?.isConnected == true ? "antenna.radiowaves.left.and.right" : "antenna.radiowaves.left.and.right.slash")
+                            .foregroundColor(robot?.isConnected == true ? .green : .gray)
+                        Text(robot?.isConnected == true ? "Robot connecté" : "Robot déconnecté")
+                            .font(.headline)
+                            .foregroundColor(textPrimary)
+                        
+                        if (wsManager?.isConnected == true) && (robot?.isConnected == true) {
                             Spacer()
+                            Image(systemName: "link")
+                                .foregroundColor(.green)
                         }
                     }
                     
-                    if showLogs {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(wsManager?.logs ?? [], id: \.self) { log in
-                                    Text(log)
-                                        .font(.system(size: 10, design: .monospaced)) // Réduit un peu la taille
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
+                    // Actions
+                    if robot == nil || robot?.isConnected == false {
+                        Button(action: {
+                            if robot == nil { connectRobot() }
+                            else { robot?.connect() }
+                        }) {
+                            Text(robot == nil ? "Connecter le Robot" : "Reconnecter le Robot")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(accentBlue)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            Button(action: { robot?.disconnect(); controller = nil }) {
+                                Text("Déconnecter le Robot")
+                                    .fontWeight(.semibold)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(accentRed)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(12)
+                            }
+                            
+                            Button(action: disconnectRobot) {
+                                Text("Supprimer")
+                                    .fontWeight(.semibold)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(12)
                             }
                         }
-                        .frame(height: 150)
-                        .padding(8)
-                        .background(Color.black.opacity(0.05))
-                        .cornerRadius(8)
-                        
-                        Button("🗑️ Effacer les logs") {
-                            wsManager?.clearLogs()
-                        }
-                        .font(.caption)
                     }
+                    
+
                 }
                 .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(12)
+                .background(bgCard)
+                .cornerRadius(16)
+                
+                // ===== ÉTAT & LOGS =====
+                if wsManager != nil {
+                    VStack(spacing: 8) {
+                        Button(action: { showLogs.toggle() }) {
+                            HStack {
+                                Image(systemName: showLogs ? "chevron.down" : "chevron.right")
+                                Text("Logs (\(wsManager?.logs.count ?? 0))")
+                                    .font(.headline)
+                                    .foregroundColor(textPrimary)
+                                Spacer()
+                            }
+                        }
+                        
+                        if showLogs {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    ForEach(wsManager?.logs ?? [], id: \.self) { log in
+                                        Text(log)
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundColor(textSecondary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
+                            }
+                            .frame(height: 150)
+                            .padding(8)
+                            .background(Color.black.opacity(0.2))
+                            .cornerRadius(8)
+                            
+                            Button(action: { wsManager?.clearLogs() }) {
+                                Text("🗑️ Effacer les logs")
+                                    .font(.caption)
+                                    .foregroundColor(textSecondary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(bgCard)
+                    .cornerRadius(12)
+                }
+                
+                Spacer()
             }
-            
-            Spacer()
+            .padding()
         }
-        .padding()
     }
     
     // MARK: - Actions
