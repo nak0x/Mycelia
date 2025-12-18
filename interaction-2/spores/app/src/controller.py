@@ -1,41 +1,31 @@
 from framework.controller import Controller
 from framework.utils.frames.frame import Frame
-from framework.components.led_strip import LedStrip
+from framework.components.fan import Fan
+from framework.app import App
 
-class ExampleController(Controller):
+class FanController(Controller):
 
     def setup(self):
-        # Configuration du bandeau LED (100 LEDs sur le pin 4)
-        self.led_strip = LedStrip(
-            pin=4,
-            pixel_num=100,
-            slug="led",  # Adapté au serveur WebSocket
-            default_color=(0, 200, 200),
-            on_frame_received=self.handle_led_command
+        app = App()
+
+        pin_fan = app.config.pins["fan"]
+
+        self.fan = Fan(
+            pin=pin_fan,
+            slug="fan",  # Adapté au serveur WebSocket
+            default_speed=100,
         )
 
-        print("Controller initialisé - Bandeau LED prêt (100 LEDs)")
+        print("Controller initialisé - Fans prêt")
 
     def update(self):
         pass
 
     def shutdown(self):
-        # Éteindre les LEDs proprement
-        if hasattr(self, 'led_strip'):
-            self.led_strip.off()
-        print("Controller arrêté - LEDs éteintes")
+        # Éteindre les Fans proprement
+        if hasattr(self, 'fan'):
+            self.fan.off()
+        print("Controller arrêté - Fans éteints")
 
-    def on_frame_received(self, frame: Frame):
+    def on_frame_received(self, frame):
         pass
-
-    def handle_led_command(self, led_strip, payload):
-        value = payload.value
-
-        if value is True or value == True:
-            print(">> ACTION: Allumage des LEDs")
-            led_strip.on()
-        elif value is False or value == False:
-            print(">> ACTION: Extinction des LEDs")
-            led_strip.off()
-        else:
-            print(f">> Commande LED inconnue: {value}")
