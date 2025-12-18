@@ -1,23 +1,23 @@
 import json
 import time
 from datetime import datetime
-from ..config import SERVER_ID, DEFAULT_ESP32_TARGET, DEFAULT_IOS_TARGET
+from ..config import SERVER_ID, DEFAULT_ESP32_TARGET, DEFAULT_IOS_TARGET, ESP32_SPORE_ID
 
-def build_led_message(value: bool = True) -> str:
+def build_fan_message(value: bool = True) -> str:
     payload = {
         "metadata": {
             "senderId": SERVER_ID,
             "timestamp": time.time(),
             "messageId": f"MSG-{datetime.now().isoformat()}-0001",
             "type": "ws-data",
-            "receiverId": DEFAULT_ESP32_TARGET,
+            "receiverId": ESP32_SPORE_ID,
             "status": {"connection": 200},
         },
         "payload": [
             {
                 "datatype": "boolean",
                 "value": value,
-                "slug": "led",
+                "slug": "fan",
             }
         ],
     }
