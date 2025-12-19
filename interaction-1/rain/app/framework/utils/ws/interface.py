@@ -14,8 +14,8 @@ class WebsocketInterface(SingletonBase):
     ws = None
 
     def __init__(self):
-        App().update.append(self.update)
         App().setup.append(self.connect)
+        App().update.append(self.update)
         self.RECONNECT = App().config.websocket.reconnect
 
     def connect(self):
@@ -50,16 +50,18 @@ class WebsocketInterface(SingletonBase):
         self.send_frame(frame)
 
     def send_frame(self, frame):
-        frame_json = frame.to_json()
-        print(f"[WS] Sending frame: {len(frame_json)} bytes")
-        self.ws.send(frame_json)
+        self.ws.send(frame.to_json())
 
     def update(self):
         """
         Non-blocking ws loop.
             - Send a heartbeat message
             - Check for incoming messages (recv is now non-blocking)
+            - Print a message when server gets disconnected
         """
+        # The self.ws only exist when we establish connection. Otherwise it's None
+        if self.ws:
+            self.CONNECTED = self.ws.check_connection()
         if self.CLOSED:
             return
         if self.CONNECTED:
@@ -68,14 +70,16 @@ class WebsocketInterface(SingletonBase):
                 data = self.ws.recv()
                 if data:  # Only process if data is available
                     frame = FrameParser(data).parse()
-                    print(f"[WS] Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
+                    print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
                     App().broadcast_frame(frame)
             except Exception as e:
-                print(f"[WS ERROR] An error occured while updating websocket: {e}")
+                print(f"An error occured while updating websocket: {e}")
+                if self.CONNECTED:
+                    print("Websocket server disconnected.")
                 self.close(not self.RECONNECT)
         elif self.RECONNECT:
             self.connect()
-    
+
     async def aupdate(self):
         """
         Async update method using arecv().
@@ -97,6 +101,8 @@ class WebsocketInterface(SingletonBase):
                     App().broadcast_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")
+                if self.CONNECTED:
+                    print("Websocket server disconnected.")
                 self.close(not self.RECONNECT)
         elif self.RECONNECT:
             self.connect()
