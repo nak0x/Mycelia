@@ -8,12 +8,18 @@ import urandom as random
 import usocket as socket
 import uselect
 from ucollections import namedtuple
+from framework.app import App
 
 try:
     import uasyncio as asyncio
     ASYNC_AVAILABLE = True
 except ImportError:
     ASYNC_AVAILABLE = False
+
+try:
+    import uerrno as errno
+except ImportError:
+    import errno
 
 
 # Opcodes
@@ -23,16 +29,6 @@ OP_BYTES = const(0x2)
 OP_CLOSE = const(0x8)
 OP_PING = const(0x9)
 OP_PONG = const(0xa)
-
-# Opcode names for logging
-OPCODE_NAMES = {
-    OP_CONT: "CONT",
-    OP_TEXT: "TEXT",
-    OP_BYTES: "BYTES",
-    OP_CLOSE: "CLOSE",
-    OP_PING: "PING",
-    OP_PONG: "PONG",
-}
 
 # Close codes
 CLOSE_OK = const(1000)
@@ -48,11 +44,14 @@ CLOSE_BAD_CONDITION = const(1011)
 URL_RE = re.compile(r'(wss|ws)://([A-Za-z0-9-\.]+)(?:\:([0-9]+))?(/.+)?')
 URI = namedtuple('URI', ('protocol', 'hostname', 'port', 'path'))
 
+
 class NoDataException(Exception):
     pass
 
+
 class ConnectionClosed(Exception):
     pass
+
 
 def urlparse(uri):
     """Parse ws:// URLs"""
@@ -87,10 +86,19 @@ class Websocket:
     def __init__(self, sock):
         self.sock = sock
         self.open = True
+
         # Set socket to non-blocking mode for async operations
         self.sock.setblocking(False)
+
+        # Poll object used for readiness / error checks
         self.poll = uselect.poll()
         self.poll.register(self.sock, uselect.POLLIN)
+
+        # RX buffer for non-blocking partial reads
+        self._rx = bytearray()
+
+        if App().config.websocket.debug:
+            print("[ws] init: non-blocking socket, poll registered, rx buffer created")
 
     def __enter__(self):
         return self
@@ -101,70 +109,207 @@ class Websocket:
     def settimeout(self, timeout):
         self.sock.settimeout(timeout)
 
-    def _has_data(self, timeout=0):
+    def _has_data(self, timeout=0) -> bool:
         """
-        Check if socket has data available using poll.
-        Returns True if data is available, False otherwise.
+        Poll-only readiness check for THIS socket.
+
+        - Returns True if readable (POLLIN).
+        - Closes and returns False on ERR/HUP/NVAL.
         """
-        events = self.poll.poll(timeout)
-        return len(events) > 0 and events[0][1] & uselect.POLLIN
+        POLLNVAL = getattr(uselect, "POLLNVAL", 0)
+        fatal_mask = uselect.POLLERR | uselect.POLLHUP | POLLNVAL
+
+        try:
+            events = self.poll.poll(timeout)
+        except Exception as e:
+            if App().config.websocket.debug:
+                print("[ws] _has_data: poll failed:", repr(e))
+            self._close()
+            return False
+
+        if App().config.websocket.debug and events:
+            print("[ws] _has_data: events:", events)
+
+        for obj, flags in events:
+            if obj is self.sock:
+                if flags & fatal_mask:
+                    if App().config.websocket.debug:
+                        print("[ws] _has_data: fatal flags:", flags)
+                    self._close()
+                    return False
+                ready = bool(flags & uselect.POLLIN)
+                if App().config.websocket.debug:
+                    print("[ws] _has_data: ready=", ready, "flags=", flags)
+                return ready
+
+        return False
+
+    def check_connection(self) -> bool:
+        """
+        Connection health check compatible with a frame-based recv().
+
+        - Uses poll(0) to detect ERR/HUP/NVAL.
+        - If POLLIN is set, calls recv() once to process control frames (PING/CLOSE).
+          This prevents servers from disconnecting due to unprocessed control frames.
+        - Does NOT touch the raw socket outside the frame parser.
+        """
+        if not self.open:
+            if App().config.websocket.debug:
+                print("[ws] check_connection: not open")
+            return False
+
+        POLLNVAL = getattr(uselect, "POLLNVAL", 0)
+        fatal_mask = uselect.POLLERR | uselect.POLLHUP | POLLNVAL
+
+        try:
+            events = self.poll.poll(0)
+        except Exception as e:
+            if App().config.websocket.debug:
+                print("[ws] check_connection: poll failed:", repr(e))
+            self._close()
+            return False
+
+        if not events:
+            if App().config.websocket.debug:
+                print("[ws] check_connection: no events -> ok")
+            return True
+
+        if App().config.websocket.debug:
+            print("[ws] check_connection: events:", events)
+
+        for obj, flags in events:
+            if obj is not self.sock:
+                continue
+
+            if flags & fatal_mask:
+                if App().config.websocket.debug:
+                    print("[ws] check_connection: fatal flags:", flags)
+                self._close()
+                return False
+
+            if flags & uselect.POLLIN:
+                if App().config.websocket.debug:
+                    print("[ws] check_connection: POLLIN -> calling recv() to process control frames")
+                try:
+                    _ = self.recv()
+                except OSError as e:
+                    if e.args and e.args[0] == errno.EAGAIN:
+                        if App().config.websocket.debug:
+                            print("[ws] check_connection: recv() EAGAIN -> ok")
+                    else:
+                        if App().config.websocket.debug:
+                            print("[ws] check_connection: recv() socket error:", repr(e))
+                        self._close()
+                        return False
+                except ConnectionClosed:
+                    if App().config.websocket.debug:
+                        print("[ws] check_connection: ConnectionClosed from recv()")
+                    return False
+                except Exception as e:
+                    if App().config.websocket.debug:
+                        print("[ws] check_connection: recv() failed:", repr(e))
+                    self._close()
+                    return False
+
+        return True
+
+    def _fill_rx(self) -> None:
+        """
+        Pull whatever is available from the non-blocking socket into self._rx.
+
+        Raises:
+          - NoDataException if nothing can be read right now (EAGAIN)
+          - ConnectionClosed if peer closed (recv returned b"")
+          - OSError for real socket errors
+        """
+        try:
+            chunk = self.sock.recv(1024)
+        except OSError as e:
+            if e.args and e.args[0] == errno.EAGAIN:
+                if App().config.websocket.debug:
+                    print("[ws] _fill_rx: EAGAIN (no data right now)")
+                raise NoDataException()
+            if App().config.websocket.debug:
+                print("[ws] _fill_rx: socket error:", repr(e))
+            raise
+
+        if chunk == b"":
+            if App().config.websocket.debug:
+                print("[ws] _fill_rx: recv returned b'' -> peer closed")
+            raise ConnectionClosed()
+
+        self._rx.extend(chunk)
+        if App().config.websocket.debug:
+            print("[ws] _fill_rx: read", len(chunk), "bytes; rx_len=", len(self._rx))
+
+    def _read_exactly(self, n: int) -> bytes:
+        """
+        Return exactly n bytes from the buffered stream, or raise NoDataException
+        if not enough bytes are currently available.
+        """
+        while len(self._rx) < n:
+            self._fill_rx()
+
+        out = bytes(self._rx[:n])
+        self._rx[:] = self._rx[n:]
+
+        if App().config.websocket.debug:
+            print("[ws] _read_exactly:", n, "bytes; remaining rx_len=", len(self._rx))
+
+        return out
 
     def read_frame(self, max_size=None):
         """
-        Read a frame from the socket.
+        Read a frame from the socket (non-blocking safe).
+
         See https://tools.ietf.org/html/rfc6455#section-5.2 for the details.
+
+        Raises:
+          - NoDataException if not enough bytes are available yet
+          - ConnectionClosed if peer closed the TCP socket
+          - ValueError on protocol errors
         """
+        # Frame header (2 bytes)
+        b1, b2 = struct.unpack("!BB", self._read_exactly(2))
 
-        # Frame header
-        two_bytes = self.sock.read(2)
+        fin = bool(b1 & 0x80)
+        opcode = b1 & 0x0F
 
-        if not two_bytes or len(two_bytes) < 2:
-            raise NoDataException
+        masked = bool(b2 & 0x80)
+        length = (b2 & 0x7F)
 
-        byte1, byte2 = struct.unpack('!BB', two_bytes)
+        if App().config.websocket.debug:
+            print("[ws] read_frame: fin=", fin, "opcode=", opcode, "masked=", masked, "len7=", length)
 
-        # Byte 1: FIN(1) _(1) _(1) _(1) OPCODE(4)
-        fin = bool(byte1 & 0x80)
-        opcode = byte1 & 0x0f
-        print(opcode)
-        print(fin)
+        if length == 126:
+            (length,) = struct.unpack("!H", self._read_exactly(2))
+            if App().config.websocket.debug:
+                print("[ws] read_frame: extended len16=", length)
+        elif length == 127:
+            (length,) = struct.unpack("!Q", self._read_exactly(8))
+            if App().config.websocket.debug:
+                print("[ws] read_frame: extended len64=", length)
 
-        # Byte 2: MASK(1) LENGTH(7)
-        mask = bool(byte2 & (1 << 7))
-        length = byte2 & 0x7f
-
-        if length == 126:  # Magic number, length header is 2 bytes
-            length_bytes = self.sock.read(2)
-            if not length_bytes or len(length_bytes) < 2:
-                raise NoDataException
-            length, = struct.unpack('!H', length_bytes)
-        elif length == 127:  # Magic number, length header is 8 bytes
-            length_bytes = self.sock.read(8)
-            if not length_bytes or len(length_bytes) < 8:
-                raise NoDataException
-            length, = struct.unpack('!Q', length_bytes)
-
-        if mask:  # Mask is 4 bytes
-            mask_bits = self.sock.read(4)
-            if not mask_bits or len(mask_bits) < 4:
-                raise NoDataException
-
-        try:
-            data = self.sock.read(length)
-            print(data)
-            if not data or len(data) < length:
-                raise NoDataException
-        except MemoryError:
-            # We can't receive this many bytes, close the socket
-            print("Frame of length %s too big. Closing", length)
+        if max_size is not None and length > max_size:
+            if App().config.websocket.debug:
+                print("[ws] read_frame: payload too big:", length, "max_size=", max_size, "-> closing")
             self.close(code=CLOSE_TOO_BIG)
             return True, OP_CLOSE, None
 
-        if mask:
-            data = bytes(b ^ mask_bits[i % 4]
-                         for i, b in enumerate(data))
+        mask_bits = b""
+        if masked:
+            mask_bits = self._read_exactly(4)
+            if App().config.websocket.debug:
+                print("[ws] read_frame: mask_bits read")
 
-        return fin, opcode, data
+        payload = self._read_exactly(length) if length else b""
+        if App().config.websocket.debug:
+            print("[ws] read_frame: payload_len=", len(payload))
+
+        if masked:
+            payload = bytes(b ^ mask_bits[i & 3] for i, b in enumerate(payload))
+
+        return fin, opcode, payload
 
     def write_frame(self, opcode, data=b''):
         """
@@ -175,121 +320,67 @@ class Websocket:
         mask = self.is_client  # messages sent by client are masked
 
         length = len(data)
-        opcode_name = OPCODE_NAMES.get(opcode, f"UNKNOWN(0x{opcode:x})")
-        
-        # Log outgoing frame
-        if opcode == OP_PING or opcode == OP_PONG:
-            print(f"[WS OUT] {opcode_name} (len={length})")
-        elif opcode == OP_CLOSE:
-            print(f"[WS OUT] {opcode_name} (len={length})")
-        elif opcode == OP_TEXT:
-            try:
-                text_preview = data.decode('utf-8')[:50] if data else ""
-                print(f"[WS OUT] {opcode_name} (len={length}): {text_preview}")
-            except:
-                print(f"[WS OUT] {opcode_name} (len={length})")
-        else:
-            print(f"[WS OUT] {opcode_name} (len={length})")
+
+        if App().config.websocket.debug:
+            print("[ws] write_frame: opcode=", opcode, "len=", length, "mask=", mask)
 
         # Frame header
-        # Byte 1: FIN(1) _(1) _(1) _(1) OPCODE(4)
         byte1 = 0x80 if fin else 0
         byte1 |= opcode
 
-        # Byte 2: MASK(1) LENGTH(7)
         byte2 = 0x80 if mask else 0
 
-        if length < 126:  # 126 is magic value to use 2-byte length header
+        if length < 126:
             byte2 |= length
             self.sock.write(struct.pack('!BB', byte1, byte2))
-
-        elif length < (1 << 16):  # Length fits in 2-bytes
-            byte2 |= 126  # Magic code
+        elif length < (1 << 16):
+            byte2 |= 126
             self.sock.write(struct.pack('!BBH', byte1, byte2, length))
-
         elif length < (1 << 64):
-            byte2 |= 127  # Magic code
+            byte2 |= 127
             self.sock.write(struct.pack('!BBQ', byte1, byte2, length))
-
         else:
             raise ValueError()
 
-        if mask:  # Mask is 4 bytes
+        if mask:
             mask_bits = struct.pack('!I', random.getrandbits(32))
             self.sock.write(mask_bits)
-
-            data = bytes(b ^ mask_bits[i % 4]
-                         for i, b in enumerate(data))
+            data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(data))
 
         self.sock.write(data)
-       
-        # Flush socket to ensure data is sent immediately, especially critical for PONG responses
-        # In MicroPython, socket writes may be buffered
-        try:
-            self.sock.flush()
-        except AttributeError:
-            # Some MicroPython implementations don't have flush(), that's okay
-            pass
 
     def recv(self):
         """
         Receive data from the websocket (non-blocking).
 
-        This is slightly different from 'websockets' in that it doesn't
-        fire off a routine to process frames and put the data in a queue.
-        If you don't call recv() sufficiently often you won't process control
-        frames.
-        
-        Returns empty string if no data is available (non-blocking).
-        This method processes ALL available frames including PING/PONG to
-        maintain keepalive, even when no data frames are present.
+        Returns:
+          - '' if no data is available
+          - str for text frames
+          - bytes for binary frames
+          - None on CLOSE (after replying with CLOSE and closing internally)
         """
         assert self.open
 
-        # Track if we've processed any frames to avoid infinite loops
-        frames_processed = 0
-        max_frames_per_call = 100  # Prevent infinite loops
-        
-        # Process all available frames in one call
-        # This ensures PING frames are always processed even if no data frames are available
-        while self.open and frames_processed < max_frames_per_call:
-            # Check if data is available before attempting to read
-            has_data = self._has_data(0)
-            if not has_data:
-                # No data available
-                # If we haven't processed any frames, return immediately
-                if frames_processed == 0:
-                    return ''
-                # If we've processed some frames (like PING), we're done processing this batch
-                break
+        if not self._has_data(0):
+            if App().config.websocket.debug:
+                print("[ws] recv: no data")
+            return ''
 
+        while self.open:
             try:
                 fin, opcode, data = self.read_frame()
-                frames_processed += 1
-                opcode_name = OPCODE_NAMES.get(opcode, f"UNKNOWN(0x{opcode:x})")
-                print(opcode_name, opcode)
-                
-                # Log incoming frame
-                if opcode == OP_PING:
-                    print(f"[WS IN]  {opcode_name} (len={len(data)}) - RESPONDING WITH PONG")
-                elif opcode == OP_PONG:
-                    print(f"[WS IN]  {opcode_name} (len={len(data)})")
-                elif opcode == OP_CLOSE:
-                    print(f"[WS IN]  {opcode_name} (len={len(data)})")
-                elif opcode == OP_TEXT:
-                    try:
-                        text_preview = data.decode('utf-8')[:50] if data else ""
-                        print(f"[WS IN]  {opcode_name} (len={len(data)}): {text_preview}")
-                    except:
-                        print(f"[WS IN]  {opcode_name} (len={len(data)})")
-                else:
-                    print(f"[WS IN]  {opcode_name} (len={len(data)})")
-                    
             except NoDataException:
-                # No more data available in this batch
-                break
-            except ValueError:
-                print("[WS ERROR] Failed to read frame. Socket dead.")
+                if App().config.websocket.debug:
+                    print("[ws] recv: partial frame / no data yet")
+                return ''
+            except ConnectionClosed:
+                if App().config.websocket.debug:
+                    print("[ws] recv: underlying TCP closed")
+                self._close()
+                raise
+            except ValueError as e:
+                if App().config.websocket.debug:
+                    print("[ws] recv: protocol error:", repr(e))
                 self._close()
                 raise ConnectionClosed()
 
@@ -297,77 +388,78 @@ class Websocket:
                 raise NotImplementedError()
 
             if opcode == OP_TEXT:
-                # Return data frame immediately
+                if App().config.websocket.debug:
+                    print("[ws] recv: TEXT frame")
                 return data.decode('utf-8')
+
             elif opcode == OP_BYTES:
-                # Return data frame immediately
+                if App().config.websocket.debug:
+                    print("[ws] recv: BYTES frame")
                 return data
+
             elif opcode == OP_CLOSE:
-                # Extract close code from received frame (first 2 bytes if present)
+                if App().config.websocket.debug:
+                    print("[ws] recv: CLOSE frame received")
+
                 close_code = CLOSE_OK
                 if data and len(data) >= 2:
                     close_code = struct.unpack('!H', data[:2])[0]
-                # Send close frame back to server (RFC 6455 requires this)
+
+                if App().config.websocket.debug:
+                    print("[ws] recv: close_code=", close_code)
+
+                # Reply with CLOSE (RFC 6455)
                 try:
-                    self.write_frame(OP_CLOSE, data[:2] if data and len(data) >= 2 else struct.pack('!H', CLOSE_OK))
-                except:
-                    pass  # Socket might already be closed
-                self._close()
-                return
-            elif opcode == OP_PONG:
-                # Ignore this frame, keep processing remaining frames
-                continue
-            elif opcode == OP_PING:
-                # CRITICAL: Send PONG immediately to keep connection alive
-                # This must be done even if no data frames are available
-                print(f"[WS] Processing PING, sending PONG response...")
-                try:
-                    self.write_frame(OP_PONG, data)
-                    print(f"[WS] PONG sent successfully")
+                    payload = data[:2] if data and len(data) >= 2 else struct.pack('!H', CLOSE_OK)
+                    self.write_frame(OP_CLOSE, payload)
                 except Exception as e:
-                    print(f"[WS ERROR] Failed to send PONG: {e}")
-                    self._close()
-                    raise ConnectionClosed()
-                # Continue processing any remaining frames
+                    if App().config.websocket.debug:
+                        print("[ws] recv: failed to send CLOSE reply:", repr(e))
+
+                self._close()
+                return None
+
+            elif opcode == OP_PONG:
+                if App().config.websocket.debug:
+                    print("[ws] recv: PONG frame (ignored)")
                 continue
+
+            elif opcode == OP_PING:
+                if App().config.websocket.debug:
+                    print("[ws] recv: PING frame -> sending PONG")
+                self.write_frame(OP_PONG, data)
+                continue
+
             elif opcode == OP_CONT:
-                # This is a continuation of a previous frame
                 raise NotImplementedError(opcode)
+
             else:
                 raise ValueError(opcode)
-        
-        # Return empty string if no data frame was received
-        # Note: Control frames (PING/PONG) have been processed above
-        return ''
 
     async def arecv(self):
         """
         Asynchronously receive data from the websocket.
-        
-        This method yields control when no data is available, making it
-        suitable for use with uasyncio.
-        
-        Usage:
-            data = await ws.arecv()
         """
         if not ASYNC_AVAILABLE:
             raise RuntimeError("uasyncio is not available. Install uasyncio for async support.")
-        
+
         assert self.open
 
         while self.open:
-            # Wait for data to be available (yields control to event loop)
             while not self._has_data(0):
-                await asyncio.sleep_ms(10)  # Yield control and wait a bit
-            
+                await asyncio.sleep_ms(10)
+
             try:
                 fin, opcode, data = self.read_frame()
             except NoDataException:
-                # No data available, yield and try again
                 await asyncio.sleep_ms(10)
                 continue
-            except ValueError:
-                print("Failed to read frame. Socket dead.")
+            except ConnectionClosed:
+                self._close()
+                raise
+            except ValueError as e:
+                if App().config.websocket.debug:
+                    print("[ws] arecv: protocol error:", repr(e))
                 self._close()
                 raise ConnectionClosed()
 
@@ -379,34 +471,28 @@ class Websocket:
             elif opcode == OP_BYTES:
                 return data
             elif opcode == OP_CLOSE:
-                # Extract close code from received frame (first 2 bytes if present)
-                close_code = CLOSE_OK
-                if data and len(data) >= 2:
-                    close_code = struct.unpack('!H', data[:2])[0]
-                # Send close frame back to server (RFC 6455 requires this)
+                if App().config.websocket.debug:
+                    print("[ws] arecv: CLOSE received")
                 try:
-                    self.write_frame(OP_CLOSE, data[:2] if data and len(data) >= 2 else struct.pack('!H', CLOSE_OK))
-                except:
-                    pass  # Socket might already be closed
+                    payload = data[:2] if data and len(data) >= 2 else struct.pack('!H', CLOSE_OK)
+                    self.write_frame(OP_CLOSE, payload)
+                except Exception as e:
+                    if App().config.websocket.debug:
+                        print("[ws] arecv: failed to send CLOSE reply:", repr(e))
                 self._close()
                 return None
             elif opcode == OP_PONG:
-                # Ignore this frame, keep waiting for a data frame
                 continue
             elif opcode == OP_PING:
-                # We need to send a pong frame
                 self.write_frame(OP_PONG, data)
-                # And then wait to receive
                 continue
             elif opcode == OP_CONT:
-                # This is a continuation of a previous frame
                 raise NotImplementedError(opcode)
             else:
                 raise ValueError(opcode)
 
     def send(self, buf):
         """Send data to the websocket."""
-
         assert self.open
 
         if isinstance(buf, str):
@@ -417,24 +503,42 @@ class Websocket:
         else:
             raise TypeError()
 
-        # Log is handled in write_frame, but add context here
+        if App().config.websocket.debug:
+            print("[ws] send: opcode=", opcode, "len=", len(buf))
+
         self.write_frame(opcode, buf)
 
     def close(self, code=CLOSE_OK, reason=''):
         """Close the websocket."""
         if not self.open:
+            if App().config.websocket.debug:
+                print("[ws] close: code=", code, "reason=", reason)
             return
 
         buf = struct.pack('!H', code) + reason.encode('utf-8')
 
-        self.write_frame(OP_CLOSE, buf)
+        try:
+            self.write_frame(OP_CLOSE, buf)
+        except Exception as e:
+            if App().config.websocket.debug:
+                print("[ws] close: failed to send CLOSE:", repr(e))
+
         self._close()
 
     def _close(self):
-        if __debug__: print("Connection closed")
+        if App().config.websocket.debug:
+            print("[ws] _close: Connection closed")
+
         self.open = False
+
         try:
             self.poll.unregister(self.sock)
-        except:
-            pass
-        self.sock.close()
+        except Exception as e:
+            if App().config.websocket.debug:
+                print("[ws] _close: cannot unregister:", repr(e))
+
+        try:
+            self.sock.close()
+        except Exception as e:
+            if App().config.websocket.debug:
+                print("[ws] _close: sock.close failed:", repr(e))
