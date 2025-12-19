@@ -8,12 +8,15 @@ class FanController(Controller):
     def setup(self):
         app = App()
 
-        pin_fan = app.config.pins["fan"]
+        pin_pwm = app.config.pins["fan_pwm"]
+        pin_power = app.config.pins["fan_power"]
 
         self.fan = Fan(
-            pin=pin_fan,
-            slug="fan",  # Adapté au serveur WebSocket
+            pin_pwm=pin_pwm,
+            pin_power=pin_power,
+            slug="fan",
             default_speed=100,
+            active_low=False
         )
 
         print("Controller initialisé - Fans prêt")
@@ -22,7 +25,7 @@ class FanController(Controller):
         pass
 
     def shutdown(self):
-        # Éteindre les Fans proprement
+        # Éteindre les Fans
         if hasattr(self, 'fan'):
             self.fan.off()
         print("Controller arrêté - Fans éteints")
