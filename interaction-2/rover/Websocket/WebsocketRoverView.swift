@@ -11,7 +11,7 @@ import SwiftUI
 struct WebsocketRoverView: View {
     
     // MARK: - State
-    @State private var serverURL: String = "ws://localhost:8000/ios"
+    @State private var serverURL: String = "ws://localhost:8001/ios"
     @State private var deviceId: String = "IOS-DASHBOARD"
     @State private var newRobotId: String = "RV-B456"
     

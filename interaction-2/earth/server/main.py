@@ -4,7 +4,7 @@ import ssl
 from .core.websocket_manager import WebSocketManager
 from .controllers.interaction_controller import InteractionController
 from .utils.messages import build_led_message
-from .config import DEFAULT_WS_PORT
+from .config import WS_PORT, HTTP_PORT
 
 async def console_loop(ws_manager, controller):
     print("\n" + "="*60)
@@ -66,7 +66,7 @@ async def main():
     parser.add_argument("--ssl-password", default=None, type=str, help="Pass phrase.")
     parser.add_argument("--ssl-ca-cert", type=str, help="CA's certificate.")
     parser.add_argument("--ssl-certs-reqs", type=int, default=0, help="Flag for certificate requires.")
-    parser.add_argument("--port", type=int, default=DEFAULT_WS_PORT, help="Port number")
+    parser.add_argument("--port", type=int, default=WS_PORT, help="Port number")
 
     args = parser.parse_args()
 
@@ -93,7 +93,7 @@ async def main():
     async with ws_manager.start_server(args.port, ssl_context) as server:
         print(f"🚀 Serveur WebSocket démarré sur ws://0.0.0.0:{args.port}")
         print(f"📱 Prêt à recevoir des connexions (ESP32 + iOS)")
-        print(f"Routes: /esp32, /ios")
+        print(f"Routes: /esp, /ios")
         
         # 4. Run Console
         try:

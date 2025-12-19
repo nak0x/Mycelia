@@ -11,7 +11,7 @@ import SwiftUI
 struct WebsocketSpheroView: View {
     
     // MARK: - State
-    @State private var serverURL: String = "ws://localhost:8000/ios"
+    @State private var serverURL: String = "ws://localhost:8002/ios"
     @State private var deviceId: String = "IOS-SPHERO-DASH"
     @State private var newRobotId: String = "SB-0994"
     
