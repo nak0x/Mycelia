@@ -1,12 +1,12 @@
 {
-    "device_id": "ESP32-FF7700",
+    "device_id": "ESP32-020101",
     "wifi": {
         "SSID": "Freebox-MARBUIS",
         "password": "3004197505102004",
         "timeout": 2000
     },
     "websocket": {
-        "server": "ws://192.168.1.156:8000/esp",
+        "server": "ws://192.168.10.230:8001/esp",
         "reconnect": true
     },
     "debug": false,

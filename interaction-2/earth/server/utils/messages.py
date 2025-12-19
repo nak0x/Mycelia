@@ -1,7 +1,7 @@
 import json
 import time
 from datetime import datetime
-from ..config import SERVER_ID, ESP32_WATER_ID, SERVER_3_ID, DEFAULT_IOS_TARGET
+from ..config import SERVER_ID, ESP32_WATER_ID, SERVER_4_ID, DEFAULT_IOS_TARGET
 
 def build_led_message(value: bool = True) -> str:
     payload = {
@@ -30,7 +30,7 @@ def build_interaction_done_message() -> str:
             "timestamp": time.time(),
             "messageId": f"MSG-{datetime.now().isoformat()}-0002",
             "type": "ws-data",
-            "receiverId": SERVER_3_ID,
+            "receiverId": SERVER_4_ID,
             "status": {"connection": 200},
         },
         "payload": [
