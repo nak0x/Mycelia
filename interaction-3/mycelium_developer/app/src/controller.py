@@ -1,5 +1,5 @@
 from framework.controller import Controller
-from framework.components.led import Led
+from framework.components.relay import Relay
 from framework.utils.gpio import GPIO
 from framework.utils.frames.frame import Payload
 from framework.utils.timer import Timer
@@ -9,7 +9,7 @@ class MainController(Controller):
     started = True
 
     def setup(self):
-        self.led = Led(GPIO.GPIO27, 'mycelium_led', on_payload_received=self.on_led_payload_received)
+        self.relay = Relay(GPIO.GPIO27, 'mycelium_deployment', on_payload_received=self.on_relay_payload_received)
 
         # Paramètres
         self.experiment_duration_ms = 10000
@@ -27,7 +27,7 @@ class MainController(Controller):
         self.experiment_timer.start()
         self.watchdog_timer.start()
 
-    def on_led_payload_received(self, led: Led, payload: Payload):
+    def on_relay_payload_received(self, led: Led, payload: Payload):
         print("New input")
         if not self.started:
             self.start_experiment()
@@ -37,12 +37,12 @@ class MainController(Controller):
         self.watchdog_timer.restart()
 
         # 2) On allume la LED et on planifie son extinction automatique
-        self.led.on()
+        self.relay.open()
         self.led_off_timer.restart()
 
     def light_off_led(self):
         print("Led off")
-        self.led.off()
+        self.relay.close()
 
     def stop_experiment_due_to_silence(self):
         # Appelé quand on n'a pas reçu de payload assez souvent
@@ -62,4 +62,4 @@ class MainController(Controller):
         self.experiment_timer.quit()
         self.watchdog_timer.quit()
         self.led_off_timer.quit()
-        self.led.off()
+        self.relay.close()

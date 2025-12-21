@@ -9,19 +9,32 @@ class MainController(Controller):
     animation_duration = 5000  # ms
 
     def setup(self):
-        self.led_strip = LedStrip(GPIO.GPIO27, 100, "nutrient_led_strip")
-        self.pixels = self.led_strip.pixels
+        # self.led_strip = LedStrip(GPIO.GPIO27, 100)
+        # self.pixels = self.led_strip.pixels
+        
+        self.reverse_led_strip = LedStrip(GPIO.GPIO26, 100)
+        self.reverse_pixels = self.reverse_led_strip.pixels
 
-        self.flow = NutrientFlow(
-            num_pixels=len(self.pixels),
-            color=(0, 255, 0),
+        # self.flow = NutrientFlow(
+        #     num_pixels=len(self.pixels),
+        #     color=(0, 255, 0),
+        #     wave_len=20,
+        #     gap_len=15,
+        #     speed=50.0,
+        #     fade=True
+        # )
+
+        self.reverse_flow = NutrientFlow(
+            num_pixels=len(self.reverse_pixels),
+            color=(0, 0, 255),
             wave_len=20,
             gap_len=15,
-            speed=100.0,
-            fade=True
+            speed=50.0,
+            fade=True,
+            reverse=True
         )
 
-        self.animated = False
+        self.animated = True
 
         # Timer qui stoppera l'animation après animation_duration
         self.animation_timer = Timer(self.animation_duration, self.stop_animation)
@@ -31,8 +44,11 @@ class MainController(Controller):
             self.handle_animation()
 
     def handle_animation(self):
-        self.flow.step(self.pixels)
-        self.led_strip.display()
+        # self.flow.step(self.pixels)
+        self.reverse_flow.step(self.reverse_pixels)
+
+        # self.led_strip.display()
+        self.reverse_led_strip.display()
 
     def start_animation(self):
         self.animated = True
@@ -40,10 +56,15 @@ class MainController(Controller):
 
     def stop_animation(self):
         self.animated = False
-        # optionnel: clear strip à la fin
-        for i in range(len(self.pixels)):
-            self.pixels[i] = (0, 0, 0)
-        self.led_strip.display()
+        # optionnel: clear strips à la fin
+        # for i in range(len(self.pixels)):
+        #     self.pixels[i] = (0, 0, 0)
+        # self.led_strip.display()
+
+        for i in range(len(self.reverse_pixels)):
+            self.reverse_pixels[i] = (0, 0, 0)
+        self.reverse_led_strip.display()
+
         WebsocketInterface().send_value("shroom_growing", True, "bool", "ESP32-030301")
 
     def on_frame_received(self, frame):
