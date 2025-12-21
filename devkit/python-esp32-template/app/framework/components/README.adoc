@@ -1,12 +1,42 @@
 = ESP32 Components documentation
+:toc:
+:toclevels: 3
 
 WARNING: This documentation describes the current behavior of ESP32 components.
 Internal APIs or hooks may evolve in the future.
 
+== Conventions
+
+=== GPIO constants
+Most examples assume you use a `GPIO` helper enum/constants, e.g. `GPIO.GPIO32`.
+Replace with raw pin numbers if your project does not use this helper.
+
+=== Application hooks
+Components register themselves to the framework in one of these lists:
+
+* `App().update` for components that need periodic polling/dispatch in the main loop
+* `App().on_frame_received` for components that react to incoming frames
+
+=== Frames and slugs
+Some components can be bound to incoming frame payloads via a `slug`.
+
+* If `slug` is `None`, the component ignores frames.
+* If `slug` is set, the component scans `frame.payload` and reacts when `payload.slug == slug`.
+* If `on_payload_received` is provided, it is called first and you can override the default behavior.
+
+Callback signature:
+[,python]
+----
+def on_payload_received(component, payload):
+    ...
+----
+
+---
+
 == Button
 
-The `Button` component allows you to listen to a physical button connected to a GPIO pin.
-It automatically registers itself in the application update loop.
+The `Button` component listens to a physical button connected to a GPIO pin.
+It automatically registers itself in the application update loop (`App().update`).
 
 === Wiring
 
@@ -20,8 +50,9 @@ It automatically registers itself in the application update loop.
 | Other side of the button
 |===
 
-NOTE: The button uses an internal `PULL_DOWN` resistor.  
-The button must connect the GPIO pin to **3.3V** when pressed.
+IMPORTANT: The button uses an internal `PULL_DOWN` resistor.
+This means the GPIO reads `0` when released, and must be connected to **3.3V** when pressed
+(e.g. button between GPIO and 3.3V, NOT between GPIO and GND).
 
 === Usage
 
@@ -62,7 +93,7 @@ It can also react to incoming frames if a `slug` is provided.
 | ESP32 Pin | LED Pin
 
 | GPIO (ex: GPIO2)
-| LED anode (via resistor)
+| LED anode (through a resistor)
 
 | GND
 | LED cathode
@@ -80,6 +111,9 @@ from src.utils.gpio import GPIO
 led = Led(
     pin=GPIO.GPIO2
 )
+
+led.on()
+led.off()
 ----
 
 === Frame-based control (optional)
@@ -94,9 +128,36 @@ led = Led(
 )
 ----
 
-When a frame contains a boolean payload matching the slug:
-- `True` → LED ON
-- `False` → LED OFF
+Default behavior when a matching payload is received:
+
+* if `payload.datatype == "bool"`:
+** `True` -> `led.on()`
+** `False` -> `led.off()`
+
+Override behavior with a callback:
+
+[,python]
+----
+def on_payload_received(led, payload):
+    # Example: invert logic
+    if payload.datatype == "bool":
+        led.off() if payload.value else led.on()
+
+led = Led(
+    pin=GPIO.GPIO2,
+    slug="status-led",
+    on_payload_received=on_payload_received
+)
+----
+
+=== State
+
+|===
+| Property | Description
+
+| `is_on`
+| `True` when the LED is currently on, else `False`
+|===
 
 ---
 
@@ -121,8 +182,9 @@ It listens to incoming frames to toggle the strip state.
 |===
 
 IMPORTANT:
-- Ensure common ground between ESP32 and the LED strip.
-- Some LED strips require an external 5V power supply.
+* Ensure common ground between ESP32 and the LED strip.
+* Some strips require an external 5V power supply.
+* Some 5V strips may require a level shifter on the data line for reliable operation.
 
 === Usage
 
@@ -131,39 +193,358 @@ IMPORTANT:
 from src.components.led_strip import LedStrip
 from src.utils.gpio import GPIO
 
-led_strip = LedStrip(
+strip = LedStrip(
     pin=GPIO.GPIO25,
     pixel_num=10
 )
+
+strip.on()      # fill with default color
+strip.off()     # clear
+strip.set_pixel(0, (255, 0, 0), show=True)
 ----
-
-=== Frame-based control
-
-You can bind the strip to a frame payload using a `slug`.
-
-[,python]
-----
-led_strip = LedStrip(
-    pin=GPIO.GPIO25,
-    pixel_num=10,
-    slug="main-strip"
-)
-----
-
-When a boolean payload with the matching slug is received:
-- `True` → all pixels ON (white)
-- `False` → all pixels OFF
 
 === Default behavior
 
 |===
 | Action | Description
 
-| `on()`
-| Turns all pixels on with white color `(255, 255, 255)`
+| `on(color=None)`
+| Turns all pixels on using `color` or `default_color`
 
 | `off()`
-| Turns all pixels off
+| Turns all pixels off (clears strip)
+
+| `fill(color)`
+| Updates internal pixels array (does not automatically show)
+
+| `display()`
+| Writes internal pixels array to the strip
+
+| `set_pixel(i, color=None, show=False)`
+| Sets one pixel to `color` (or default) and optionally displays
+
+| `next_pixel(color=None, show=False)`
+| Lights the next pixel with the given color (or default) and returns its index
+
+| `previous_pixel(color=None, show=False)`
+| Lights the previous pixel with the given color (or default) and returns its index
 |===
 
-NOTE: Color handling can be extended later but is currently fixed.
+=== Frame-based control (optional)
+
+Bind the strip to a frame payload using a `slug`.
+
+[,python]
+----
+strip = LedStrip(
+    pin=GPIO.GPIO25,
+    pixel_num=10,
+    slug="main-strip"
+)
+----
+
+Default behavior when a matching payload is received:
+
+* if `payload.datatype == "bool"`:
+** `True` -> `strip.on()`
+** `False` -> `strip.off()`
+
+Override behavior with a callback:
+
+[,python]
+----
+def on_payload_received(strip, payload):
+    # Example: change color based on a custom payload
+    if payload.datatype == "bool":
+        strip.on((0, 255, 0)) if payload.value else strip.off()
+
+strip = LedStrip(
+    pin=GPIO.GPIO25,
+    pixel_num=10,
+    slug="main-strip",
+    on_payload_received=on_payload_received
+)
+----
+
+---
+
+== Relay
+
+The `Relay` component controls a relay module through a GPIO output.
+It can be driven manually or via frames (slug).
+
+=== Wiring
+
+|===
+| ESP32 Pin | Relay Pin
+
+| GPIO (ex: GPIO27)
+| IN (control input)
+
+| 5V / 3.3V
+| VCC (depending on relay module)
+
+| GND
+| GND
+|===
+
+IMPORTANT:
+* Ensure common ground between ESP32 and relay module.
+* Many relay boards are **active-low** (IN=0 energizes relay). This component assumes:
+** `open()` -> `pin.value(0)`
+** `close()` -> `pin.value(1)`
+
+=== Usage
+
+[,python]
+----
+from src.components.relay import Relay
+from src.utils.gpio import GPIO
+
+relay = Relay(pin=GPIO.GPIO27)
+
+relay.open()
+relay.close()
+relay.toggle()
+----
+
+=== Behavior
+
+|===
+| Action | Description
+
+| `open()`
+| Sets GPIO to `0` and sets `is_open = True`
+
+| `close()`
+| Sets GPIO to `1` and sets `is_open = False`
+
+| `toggle()`
+| Opens if closed, closes if open
+|===
+
+=== Frame-based control (optional)
+
+[,python]
+----
+relay = Relay(
+    pin=GPIO.GPIO27,
+    slug="door-relay"
+)
+----
+
+Default behavior when a matching payload is received:
+
+* if `payload.datatype == "bool"`:
+** `True` -> `relay.open()`
+** `False` -> `relay.close()`
+
+Override behavior with a callback:
+
+[,python]
+----
+def on_payload_received(relay, payload):
+    # Example: toggle on True
+    if payload.datatype == "bool" and payload.value:
+        relay.toggle()
+
+relay = Relay(
+    pin=GPIO.GPIO27,
+    slug="door-relay",
+    on_payload_received=on_payload_received
+)
+----
+
+=== State
+
+|===
+| Property | Description
+
+| `is_open`
+| `True` when relay is open, else `False`
+|===
+
+---
+
+== Engine
+
+The `Engine` component is a generic digital output controller (similar to `Led`)
+with an optional frame binding via `slug`.
+
+It is suitable for driving a transistor, MOSFET, motor driver input, etc.
+(Do not drive motors directly from a GPIO.)
+
+=== Wiring
+
+|===
+| ESP32 Pin | Engine Driver Pin
+
+| GPIO (ex: GPIO14)
+| Control input of the driver (IN / EN)
+
+| GND
+| Driver ground (common ground required)
+|===
+
+IMPORTANT:
+* Always use a proper driver (transistor/MOSFET/module) for real loads.
+* This component uses `Pin.OUT` with `Pin.PULL_DOWN`.
+
+=== Usage
+
+[,python]
+----
+from src.components.engine import Engine
+from src.utils.gpio import GPIO
+
+engine = Engine(pin=GPIO.GPIO14)
+
+engine.on()
+engine.off()
+----
+
+=== Frame-based control (optional)
+
+[,python]
+----
+engine = Engine(
+    pin=GPIO.GPIO14,
+    slug="fan"
+)
+----
+
+Default behavior when a matching payload is received:
+
+* if `payload.datatype == "bool"`:
+** `True` -> `engine.on()`
+** `False` -> `engine.off()`
+
+Override behavior with a callback:
+
+[,python]
+----
+def on_payload_received(engine, payload):
+    # Example: safety: ignore OFF frames
+    if payload.datatype == "bool" and payload.value:
+        engine.on()
+
+engine = Engine(
+    pin=GPIO.GPIO14,
+    slug="fan",
+    on_payload_received=on_payload_received
+)
+----
+
+=== State
+
+|===
+| Property | Description
+
+| `is_on`
+| `True` when output is on, else `False`
+|===
+
+---
+
+== Encoder
+
+The `Encoder` component listens to a rotary encoder (quadrature A/B).
+
+It is designed for precision:
+* It captures A/B transitions using GPIO interrupts (IRQ) so no steps are missed.
+* It dispatches callbacks through the application update loop (`App().update`)
+  to keep IRQ handlers lightweight/safe.
+
+=== Wiring
+
+A rotary encoder exposes two signals: `A` and `B` (sometimes labeled `CLK` and `DT`).
+Some encoder boards also provide `VCC` and `GND`.
+
+|===
+| ESP32 Pin | Encoder Pin
+
+| GPIO (ex: GPIO25)
+| Signal A
+
+| GPIO (ex: GPIO26)
+| Signal B
+
+| 3.3V
+| VCC (recommended)
+
+| GND
+| GND
+|===
+
+IMPORTANT:
+* Use **3.3V** for VCC to avoid 5V levels on ESP32 GPIOs.
+* Ensure common ground.
+* If your encoder board already contains pull resistors, internal pulls may still work.
+  External 10k pull-ups can improve stability on noisy setups.
+
+NOTE: The component uses `PULL_UP` by default.
+
+=== Usage
+
+[,python]
+----
+from src.components.encoder import Encoder
+from src.utils.gpio import GPIO
+
+encoder = Encoder(
+    pinA=GPIO.GPIO25,
+    pinB=GPIO.GPIO26,
+    onCw=lambda: print("CW"),
+    onCcw=lambda: print("CCW"),
+    onChange=lambda pos, delta: print("pos:", pos, "delta:", delta)
+)
+----
+
+=== Behavior
+
+The encoder produces multiple electrical transitions per physical “click” (detent).
+The component accumulates transitions and emits one step per detent.
+
+|===
+| Event | Description
+
+| `onCw`
+| Called once per detent when rotating clockwise
+
+| `onCcw`
+| Called once per detent when rotating counter-clockwise
+
+| `onChange(position, delta)`
+| Called once per detent. `position` is the updated position, `delta` is the signed step count.
+|===
+
+=== Configuration
+
+|===
+| Parameter | Description | Default
+
+| `pull`
+| GPIO pull mode for A/B inputs (`Pin.PULL_UP` or `Pin.PULL_DOWN`) | `Pin.PULL_UP`
+
+| `steps_per_detent`
+| Number of valid quadrature transitions required to count one detent | `4`
+
+| `min_us`
+| Debounce filter in microseconds (ignore edges too close in time) | `150`
+|===
+
+Tips:
+* If you see occasional wrong direction steps, increase `min_us` (e.g. 250–400).
+* If you miss steps while rotating fast, decrease `min_us` (e.g. 80–120).
+* `position` is stored as an integer and can be reset with `reset()`.
+
+=== State
+
+|===
+| Property | Description
+
+| `position`
+| Current encoder position (in detents)
+|===
+
+---
