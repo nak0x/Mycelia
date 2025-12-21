@@ -15,12 +15,9 @@ class Controller:
     def server_id(self) -> str:
         return self.app["server_id"]
     
-    def build_frame(self, receiver_id: str, slug: str, datatype: str, value: Any, connection_status: int = 200) -> Dict[str, Any]:
+    def build_frame(self, action: str, value: Any) -> Dict[str, Any]:
         return frame(
             sender=self.server_id,
-            receiver=receiver_id,
-            slug=slug,
-            datatype=datatype,
-            value=value,
-            connection_status=connection_status
+            action=action,
+            value=value
         )

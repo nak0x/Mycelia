@@ -1,6 +1,5 @@
 from __future__ import annotations
 from aiohttp import web
-from typing import Dict, Any
 
 from app.import_utils import import_symbol
 from app.frames.frame import Frame
@@ -8,11 +7,7 @@ from app.config import AppConfig
 from app.ws_controllers.base import WsController
 
 
-class WsPayloadDispatcher:
-    """
-    Dispatch each payload item by slug to a controller/action defined in config.json.
-    """
-
+class WsActionDispatcher:
     def __init__(self, app: web.Application, cfg: AppConfig):
         self.app = app
         self.cfg = cfg
@@ -24,21 +19,24 @@ class WsPayloadDispatcher:
             self._controller_cache[import_path] = ControllerClass(self.app)
         return self._controller_cache[import_path]
 
-    async def dispatch_payload(self, frame: Frame, payload: Dict[str, Any], ws: web.WebSocketResponse) -> bool:
-        slug = payload.get("slug")
-        if not isinstance(slug, str) or not slug:
-            return False
-
-        route = self.cfg.ws_payload_routes.get(slug)
+    async def dispatch(self, frame: Frame, ws: web.WebSocketResponse) -> bool:
+        """
+        Returns True if a handler was called, False otherwise.
+        """
+        route = self.cfg.ws_actions.get(frame.action)
         if route is None:
             return False
 
         controller = self._get_controller(route.controller)
 
         if not hasattr(controller, route.action):
-            raise RuntimeError(f"WsController '{route.controller}' has no action '{route.action}' for slug '{slug}'")
+            raise RuntimeError(
+                f"WS Controller '{route.controller}' has no method '{route.action}' "
+                f"for incoming action '{frame.action}'"
+            )
 
         handler = getattr(controller, route.action)
-        # Signature expected: async def handler(self, frame: Frame, payload: dict, ws: WebSocketResponse) -> None
-        await handler(frame, payload, ws)
+        # expected signature:
+        # async def handler(self, frame: Frame, ws: web.WebSocketResponse) -> None
+        await handler(frame, ws)
         return True

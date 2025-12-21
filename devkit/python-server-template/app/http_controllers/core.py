@@ -1,7 +1,6 @@
 from aiohttp import web
 from app.http_controllers.base import HttpController
 from app.frames.parser import parse_frame_from_request
-from app.frames.factory import ok_frame, error_frame_json
 
 
 class CoreController(HttpController):

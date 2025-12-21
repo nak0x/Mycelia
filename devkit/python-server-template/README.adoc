@@ -14,7 +14,7 @@ It is designed to feel like a mini-framework:
 ** WebSocket server
 ** WS client registry + broadcast
 ** Frame validation on input/output
-** WS payload dispatch by `slug` when the message targets the server
+** WS action dispatch based on `action` (semantic actions)
 
 == Requirements
 
@@ -58,7 +58,7 @@ The server reads `config.json`.
 * server settings (including a unique `id`)
 * ws path
 * HTTP routes (controller + action)
-* WS payload routes (slug -> controller + action)
+* WS action routes (`action` -> controller + method)
 
 === Example
 
@@ -75,8 +75,9 @@ The server reads `config.json`.
     { "method": "GET", "path": "/health", "controller": "app.controllers.core.CoreController", "action": "health" },
     { "method": "POST", "path": "/api/broadcast", "controller": "app.controllers.core.CoreController", "action": "broadcast" }
   ],
-  "ws_payload_routes": {
-    "ping": { "controller": "app.ws_controllers.core.CoreWsController", "action": "on_ping" }
+  "ws_actions": {
+    "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" },
+    "led":  { "controller": "app.ws_controllers.device.DeviceController", "action": "on_led" }
   }
 }
 ----
@@ -95,20 +96,21 @@ All data **received via HTTP** and **sent/received via WebSocket** must follow t
 ----
 {
   "metadata": {
-    "senderId": "CLIENT-123",
-    "timestamp": 1730000000.0,
-    "messageId": "MSG-2025-01-01T10:00:00-0001",
-    "type": "ws-data",
-    "receiverId": "SERVER-000000",
-    "status": { "connection": 200 }
+    "timestamp": 1678886400,
+    "senderId": "ESP32-010101"
   },
-  "payload": [
-    { "datatype": "string", "value": "ping", "slug": "ping" }
-  ]
+  "action": "ping",
+  "value": null
 }
 ----
 
-If a frame is invalid, the framework returns/sends an error frame with status codes.
+Notes:
+
+* `metadata.timestamp` and `metadata.senderId` are mandatory
+* `action` is mandatory and must be a non-empty string
+* `value` is optional and can be `null`, a primitive, an object, or an array
+
+If a frame is invalid, the framework can ignore it or reply with an error (depending on implementation).
 
 == WebSocket
 
@@ -121,27 +123,40 @@ ws://localhost:8000/ws
 
 === Behavior
 
-* any incoming WS frame is validated
-* valid frames are automatically broadcast to all other clients (rebroadcast)
-* invalid frames can be rejected with an error frame response
-* if the incoming frame targets this server (`metadata.receiverId == server.id`):
-** each payload item is dispatched by its `slug` to a WS controller defined in `ws_payload_routes`
-** this is executed in addition to the normal rebroadcast
+* any incoming WS frame is validated (new format)
+* if the incoming `action` exists in `config.json` under `ws_actions`, the configured controller method is called
+* if the `action` is not configured, nothing happens (message is ignored by the action router)
+* WebSocket rebroadcast can remain enabled (default in the provided implementation)
 
-=== WS payload dispatch (slug-based)
+=== WS action dispatch (semantic-action based)
 
-When a WS frame targets this server, each payload item is processed individually:
+When a WS frame is received:
 
-* for each payload in `frame.payload`:
-** read `payload.slug`
-** lookup that slug in `config.json` -> `ws_payload_routes`
-** call `controller.action(frame, payload, ws)`
+* read `frame.action`
+* lookup `frame.action` in `config.json` -> `ws_actions`
+* if found:
+** instantiate the controller (singleton per class)
+** call the configured method: `controller.<method>(frame, ws)`
+* if not found:
+** no controller is called
 
-If a slug has no route, it is ignored.
+Example mapping:
+
+[source,json]
+----
+"ws_actions": {
+  "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" }
+}
+----
+
+Means:
+
+* incoming message with `"action": "ping"`
+* calls `app.ws_controllers.core.CoreController.on_ping(frame, ws)`
 
 == HTTP
 
-All POST endpoints expecting data expect a Frame.
+All POST endpoints expecting data expect the same Frame format.
 
 Example: broadcast from HTTP to WS clients:
 
@@ -150,23 +165,15 @@ Example: broadcast from HTTP to WS clients:
 curl -X POST http://localhost:8000/api/broadcast \
   -H "Content-Type: application/json" \
   -d '{
-    "metadata": {
-      "senderId": "HTTP-CLIENT",
-      "timestamp": 1730000000.0,
-      "messageId": "MSG-HTTP-0001",
-      "type": "http-data",
-      "receiverId": "SERVER-000000",
-      "status": { "connection": 200 }
-    },
-    "payload": [
-      { "datatype": "string", "value": "Hello WS clients!", "slug": "message" }
-    ]
+    "metadata": { "timestamp": 1730000000.0, "senderId": "HTTP-CLIENT" },
+    "action": "broadcast",
+    "value": { "message": "Hello WS clients!" }
   }'
 ----
 
 == Writing an HTTP controller
 
-Create a controller class in `app/http_controllers/`.
+Create a controller class in `app/http_controllers/` (or the folder used by your project).
 
 Example:
 
@@ -184,12 +191,15 @@ class MyController(HttpController):
         # business logic...
         await self.hub.broadcast(frame.raw_json)
 
-        return web.json_response(self.build_frame(
-            sender_id=frame.metadata.get("senderId", "UNKNOWN"),
-            slug="ws_sent",
-            datatype="string",
-            value="do something"
-        ))
+        # example response (server-generated frame)
+        return web.json_response({
+            "metadata": {
+                "timestamp": 1730000000.0,
+                "senderId": self.server_id
+            },
+            "action": "ack",
+            "value": "done"
+        })
 ----
 
 Then register the route in `config.json`:
@@ -201,16 +211,15 @@ Then register the route in `config.json`:
 
 No extra wiring required.
 
-== Writing a WS controller (payload slug handlers)
+== Writing a WS controller (semantic action handlers)
 
-WS controllers are used only for WebSocket inbound messages targeting the server.
+WS controllers are used to handle WebSocket inbound messages based on `action`.
 
 Create a WS controller class in `app/ws_controllers/`.
 
 Handlers receive:
 
 * `frame` (the full validated frame)
-* `payload` (the payload dict for the specific slug)
 * `ws` (the sender WebSocket connection)
 
 Example:
@@ -221,39 +230,34 @@ from aiohttp import web
 from app.ws_controllers.base import WsController
 from app.frames.frame import Frame
 import json, time
-from datetime import datetime
 
-class DeviceController(WsController):
+class CoreController(WsController):
 
-    async def on_led(self, frame: Frame, payload: dict, ws: web.WebSocketResponse) -> None:
-        value = bool(payload.get("value"))
-        sender = frame.metadata.get("senderId", "UNKNOWN")
-
-        # perform side-effects here...
-        print("LED requested:", value)
-
-        # optional: ACK only to sender
-        await ws.send_str(json.dumps(self.build_frame(
-            receiver_id=sender,
-            slug="led",
-            datatype="bool",
-            value=True
-        )))
+    async def on_ping(self, frame: Frame, ws: web.WebSocketResponse) -> None:
+        # optional: reply only to sender
+        await ws.send_str(json.dumps({
+            "metadata": {
+                "timestamp": time.time(),
+                "senderId": self.server_id
+            },
+            "action": "pong",
+            "value": { "from": self.server_id, "to": frame.sender_id }
+        }))
 ----
 
 Register it in `config.json`:
 
 [source,json]
 ----
-"ws_payload_routes": {
-  "led": { "controller": "app.ws_controllers.device.DeviceController", "action": "on_led" }
+"ws_actions": {
+  "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" }
 }
 ----
 
 == Summary
 
-* `config.json` declares HTTP routes + WS payload routes
+* `config.json` declares HTTP routes + WS action routes
 * HTTP controllers contain your HTTP logic
-* WS controllers handle inbound WS payloads targeting the server (slug-based)
-* Frame format is enforced for HTTP + WS
-* WebSocket rebroadcast is built-in
+* WS controllers handle inbound WS messages based on `action`
+* Frame format is enforced for HTTP + WS (new simplified format)
+* WebSocket rebroadcast can be enabled as a default behavior

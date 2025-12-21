@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import Dict, List
 
 
 @dataclass
@@ -18,16 +18,18 @@ class RouteConfig:
     controller: str
     action: str
 
+
 @dataclass
-class WsPayloadRouteConfig:
+class WsActionConfig:
     controller: str
     action: str
+
 
 @dataclass
 class AppConfig:
     server: ServerConfig
     routes: List[RouteConfig]
-    ws_payload_routes: Dict[str, WsPayloadRouteConfig]
+    ws_actions: Dict[str, WsActionConfig]
 
 
 def load_config(path: str) -> AppConfig:
@@ -35,20 +37,12 @@ def load_config(path: str) -> AppConfig:
         raw = json.load(f)
 
     s = raw.get("server", {})
-    routes = raw.get("routes", [])
-    ws_payload_routes_raw = raw.get("ws_payload_routes", {})
-
-    ws_payload_routes = {
-        slug: WsPayloadRouteConfig(
-            controller=cfg["controller"],
-            action=cfg["action"]
-        )
-        for slug, cfg in ws_payload_routes_raw.items()
-    }
+    routes_raw = raw.get("routes", [])
+    ws_actions_raw = raw.get("ws_actions", {})
 
     return AppConfig(
         server=ServerConfig(
-            id=s.get("id", "SERVER-000000"),
+            id=s.get("id", "SERVER"),
             host=s.get("host", "0.0.0.0"),
             port=int(s.get("port", 8000)),
             ws_path=s.get("ws_path", "/ws"),
@@ -60,7 +54,13 @@ def load_config(path: str) -> AppConfig:
                 controller=r["controller"],
                 action=r["action"],
             )
-            for r in routes
+            for r in routes_raw
         ],
-        ws_payload_routes=ws_payload_routes
+        ws_actions={
+            action_name: WsActionConfig(
+                controller=cfg["controller"],
+                action=cfg["action"]
+            )
+            for action_name, cfg in ws_actions_raw.items()
+        }
     )
