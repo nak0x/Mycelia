@@ -1,4 +1,3 @@
-from math import isfinite
 from framework.app import App
 from machine import Pin
 from framework.utils.frames.frame import Frame
