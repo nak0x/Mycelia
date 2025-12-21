@@ -14,8 +14,8 @@ class WebsocketInterface(SingletonBase):
     ws = None
 
     def __init__(self):
-        App().update.append(self.update)
         App().setup.append(self.connect)
+        App().update.append(self.update)
         self.RECONNECT = App().config.websocket.reconnect
 
     def connect(self):
@@ -57,7 +57,11 @@ class WebsocketInterface(SingletonBase):
         Non-blocking ws loop.
             - Send a heartbeat message
             - Check for incoming messages (recv is now non-blocking)
+            - Print a message when server gets disconnected
         """
+        # The self.ws only exist when we establish connection. Otherwise it's None
+        if self.ws:
+            self.CONNECTED = self.ws.check_connection()
         if self.CLOSED:
             return
         if self.CONNECTED:
@@ -70,10 +74,12 @@ class WebsocketInterface(SingletonBase):
                     App().broadcast_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")
+                if self.CONNECTED:
+                    print("Websocket server disconnected.")
                 self.close(not self.RECONNECT)
         elif self.RECONNECT:
             self.connect()
-    
+
     async def aupdate(self):
         """
         Async update method using arecv().
@@ -95,6 +101,8 @@ class WebsocketInterface(SingletonBase):
                     App().broadcast_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")
+                if self.CONNECTED:
+                    print("Websocket server disconnected.")
                 self.close(not self.RECONNECT)
         elif self.RECONNECT:
             self.connect()
