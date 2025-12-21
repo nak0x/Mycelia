@@ -36,7 +36,7 @@ class Config:
         self._data["debug"] = data["debug"]
         self._data["slowed"] = data["slowed"]
         self._data["wifi"] = WifiConfig(data["wifi"]["SSID"], data["wifi"]["password"], data["wifi"]["timeout"])
-        self._data["websocket"] = WebsocketConfig(data["websocket"]["server"], data["websocket"]["reconnect"])
+        self._data["websocket"] = WebsocketConfig(data["websocket"]["server"], data["websocket"]["reconnect"], data["websocket"]["debug"])
         
         # Debug: Print all config data
         print("=== Config Data (Debug) ===")
@@ -52,6 +52,7 @@ class Config:
                 elif isinstance(value, WebsocketConfig):
                     print(f"    server: {value.server}")
                     print(f"    reconnect: {value.reconnect}")
+                    print(f"    debug: {value.debug}")
             else:
                 print(f"  {key}: {value}")
         print("===========================")
@@ -95,7 +96,9 @@ class WifiConfig:
 class WebsocketConfig:
     server = ""
     reconnect = True
+    debug = False
 
-    def __init__(self, server, reconnect):
+    def __init__(self, server, reconnect, debug):
         self.server = server
         self.reconnect = reconnect
+        self.debug = debug

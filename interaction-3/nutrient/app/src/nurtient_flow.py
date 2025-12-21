@@ -7,14 +7,17 @@ class NutrientFlow:
     - gap_len  : nb leds éteintes entre 2 paquets
     - speed    : leds par seconde (float possible)
     - fade     : True -> bord adouci (petit dégradé)
+    - reverse  : True -> flux inversé (droite->gauche au lieu de gauche->droite)
     """
-    def __init__(self, num_pixels, color=(0, 255, 0), wave_len=6, gap_len=10, speed=20.0, fade=True):
+    def __init__(self, num_pixels, color=(0, 255, 0), wave_len=6, gap_len=10, speed=20.0, fade=True, reverse=False):
+        # ✅ Bon choix: c'est une propriété du flow (direction), donc dans le constructeur
         self.n = num_pixels
         self.color = color
         self.wave_len = max(1, int(wave_len))
         self.gap_len = max(0, int(gap_len))
         self.speed = float(speed)
         self.fade = bool(fade)
+        self.reverse = bool(reverse)
 
         self.period = self.wave_len + self.gap_len  # longueur d’un motif complet
         self.pos = 0.0
@@ -22,6 +25,12 @@ class NutrientFlow:
 
     def set_speed(self, speed):
         self.speed = float(speed)
+
+    def set_reverse(self, reverse=True):
+        self.reverse = bool(reverse)
+
+    def toggle_reverse(self):
+        self.reverse = not self.reverse
 
     def set_pattern(self, wave_len=None, gap_len=None):
         if wave_len is not None:
@@ -40,8 +49,9 @@ class NutrientFlow:
         dt = time.ticks_diff(now, self._last) / 1000.0
         self._last = now
 
-        # avance en "leds"
-        self.pos = (self.pos + self.speed * dt) % self.period
+        # avance en "leds" (sens selon reverse)
+        direction = -1.0 if self.reverse else 1.0
+        self.pos = (self.pos + direction * self.speed * dt) % self.period
 
         # Nettoyage buffer
         for i in range(self.n):
@@ -67,5 +77,5 @@ class NutrientFlow:
                         pixels[idx] = self._scale(self.color, k)
                     else:
                         pixels[idx] = self.color
-        
+
         return pixels
