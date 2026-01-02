@@ -547,4 +547,3 @@ Tips:
 | Current encoder position (in detents)
 |===
 
----
