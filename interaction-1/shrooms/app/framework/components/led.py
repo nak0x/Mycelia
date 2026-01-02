@@ -7,7 +7,7 @@ class Led:
 
     def __init__(self, pin, action = None, on_payload_received = None):
         self.pin = Pin(pin, Pin.OUT, Pin.PULL_DOWN)
-        self.actino = action
+        self.action = action
         self.on_payload_received_callback = on_payload_received
         App().on_frame_received.append(self.on_frame_received)
 
