@@ -97,6 +97,10 @@ class Websocket:
         # RX buffer for non-blocking partial reads
         self._rx = bytearray()
 
+        # Pending payload saved when check_connection() consumes a data frame
+        # so the higher-level code can still read it from recv()/arecv().
+        self._pending = None
+
         if App().config.websocket.debug:
             print("[ws] init: non-blocking socket, poll registered, rx buffer created")
 
@@ -191,7 +195,11 @@ class Websocket:
                 if App().config.websocket.debug:
                     print("[ws] check_connection: POLLIN -> calling recv() to process control frames")
                 try:
-                    _ = self.recv()
+                    val = self.recv()
+                    # If recv() returned an actual data payload (not '' or None),
+                    # store it so the upper layer can read it later.
+                    if val not in ('', None):
+                        self._pending = val
                 except OSError as e:
                     if e.args and e.args[0] == errno.EAGAIN:
                         if App().config.websocket.debug:
@@ -360,6 +368,20 @@ class Websocket:
           - None on CLOSE (after replying with CLOSE and closing internally)
         """
         assert self.open
+
+        # If a previous check_connection() call consumed a data frame,
+        # return it immediately here so async callers don't miss it.
+        if getattr(self, '_pending', None) is not None:
+            val = self._pending
+            self._pending = None
+            return val
+
+        # If a previous check_connection() call consumed a data frame,
+        # return it immediately here so callers don't miss it.
+        if getattr(self, '_pending', None) is not None:
+            val = self._pending
+            self._pending = None
+            return val
 
         if not self._has_data(0):
             if App().config.websocket.debug:
