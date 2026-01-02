@@ -69,6 +69,8 @@ class App(SingletonBase):
                 shutdown()
 
     def broadcast_frame(self, frame):
+        if self.DEBUG:
+            print(frame)
         # Broadcast frame to all registered handlers
         for hooks in self.on_frame_received:
             hooks(frame)
