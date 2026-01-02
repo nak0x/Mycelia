@@ -59,6 +59,7 @@ class WebsocketInterface(SingletonBase):
                 # Check for incoming messages (non-blocking)
                 data = self.ws.recv()
                 if data:  # Only process if data is available
+                    print(f"Recv: {data} from {self.ws.get_remote_address()}")
                     frame = FrameParser(data).parse()
                     print(f"Recv: {frame.action} from {frame.metadata.sender_id}")
                     App().broadcast_frame(frame)

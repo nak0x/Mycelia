@@ -136,7 +136,7 @@ def parse_kv_tokens(tokens: List[str]) -> Dict[str, str]:
 # ---------------- Interactive state ----------------
 @dataclass
 class Defaults:
-    sender_id: str = "CLIENT-ONEFILE"
+    sender_id: str = "ESP32-010301"
 
     def to_pretty(self) -> str:
         return json.dumps(asdict(self), indent=2, ensure_ascii=False)
