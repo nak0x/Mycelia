@@ -3,7 +3,7 @@ import gc
 from .client import connect as ws_connect
 from framework.app import App
 from framework.utils.frames.frame_parser import FrameParser
-from framework.utils.frames.frame import Frame, Metadata, Payload
+from framework.utils.frames.frame import Frame, Metadata
 from framework.utils.abstract_singleton import SingletonBase
 
 class WebsocketInterface(SingletonBase):
@@ -28,24 +28,14 @@ class WebsocketInterface(SingletonBase):
         self.CONNECTED = True
         print("Websocket connected")
 
-    def send_value(self, slug: str, value: any, type: str, receiver_id: str):
-        datetime = time.localtime(time.time())
+    def send_value(self, action: str, value: any):
         frame = Frame(
             metadata={
                 "senderId": App().config.device_id,
-                "timestamp": time.time(),
-                "messageId": f"MSG-{datetime[0]}{datetime[1]}{datetime[2]}-0001",
-                "type": "ws-data",
-                "receiverId": receiver_id,
-                "status": {"connection": 200},
+                "timestamp": int(time.time()),
             },
-            payloads=[
-                {
-                    "datatype": type,
-                    "value": value,
-                    "slug": slug,
-                }
-            ],
+            action=action,
+            value=value,
         )
         self.send_frame(frame)
 
@@ -70,7 +60,7 @@ class WebsocketInterface(SingletonBase):
                 data = self.ws.recv()
                 if data:  # Only process if data is available
                     frame = FrameParser(data).parse()
-                    print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
+                    print(f"Recv: {frame.action} from {frame.metadata.sender_id}")
                     App().broadcast_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")
@@ -97,7 +87,7 @@ class WebsocketInterface(SingletonBase):
                 data = await self.ws.arecv()
                 if data:  # Only process if data is available
                     frame = FrameParser(data).parse()
-                    print(f"Recv: {frame.metadata.message_id} from {frame.metadata.sender_id}")
+                    print(f"Recv: {frame.action} from {frame.metadata.sender_id}")
                     App().broadcast_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")

@@ -37,38 +37,18 @@ class FrameParser:
                 errors["senderId"] = "Missing 'senderId' key"
             if "timestamp" not in metadata:
                 errors["timestamp"] = "Missing 'timestamp' key"
-            if "messageId" not in metadata:
-                errors["messageId"] = "Missing 'messageId' key"
-            if "type" not in metadata:
-                errors["type"] = "Missing 'type' key"
-            if "receiverId" not in metadata:
-                errors["receiverId"] = "Missing 'receiverId' key"
-            if "status" not in metadata:
-                errors["status"] = "Missing 'status' key"
-            else:
-                status = metadata["status"]
-                if not isinstance(status, dict) or "connection" not in status:
-                    errors["status.connection"] = "Missing 'status.connection' key"
 
-        # --- payload ---
-        if "payload" not in self.frame:
-            errors["payload"] = "Missing 'payload' key"
+        # --- action ---
+        if "action" not in self.frame:
+            errors["action"] = "Missing 'action' key"
         else:
-            payloads = self.frame["payload"]
-            if not isinstance(payloads, list):
-                errors["payload"] = "'payload' must be a list"
-            else:
-                for i, payload in enumerate(payloads):
-                    if not isinstance(payload, dict):
-                        errors[f"payload[{i}]"] = "Payload item must be a dict"
-                        continue
+            action = self.frame["action"]
+            if not isinstance(action, str):
+                errors["action"] = "'action' must be a string"
 
-                    if "datatype" not in payload:
-                        errors[f"payload[{i}].datatype"] = "Missing 'datatype' key"
-                    if "value" not in payload:
-                        errors[f"payload[{i}].value"] = "Missing 'value' key"
-                    if "slug" not in payload:
-                        errors[f"payload[{i}].slug"] = "Missing 'slug' key"
+        # --- value ---
+        if "value" not in self.frame:
+            errors["value"] = "Missing 'value' key"
 
         if errors != {}:
             print(errors)
@@ -77,7 +57,8 @@ class FrameParser:
     def parse(self):
         self.frame = Frame(
             metadata=self.frame["metadata"],
-            payloads=self.frame["payload"]
+            action=self.frame["action"],
+            value=self.frame["value"]
         )
         return self.frame
 

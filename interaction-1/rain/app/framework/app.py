@@ -69,7 +69,6 @@ class App(SingletonBase):
                 shutdown()
 
     def broadcast_frame(self, frame):
-        # Discard frame that we dont care
-        if frame.metadata.receiver_id == self.config.device_id:
-            for hooks in self.on_frame_received:
-                hooks(frame)
+        # Broadcast frame to all registered handlers
+        for hooks in self.on_frame_received:
+            hooks(frame)
