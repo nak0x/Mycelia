@@ -1,12 +1,11 @@
 from framework.controller import Controller
-from framework.utils.frames.frame import Frame
-from framework.components.engine import Engine
-from framework.utils.gpio import GPIO
-from framework.app import App
+from framework.components.relay import Relay
 
 
 class RainController(Controller):
     
     def __init__(self):
         super().__init__()
-        self.engine = Engine(GPIO.GPIO4, "rain-toggle")
+        relay = Relay(27, "01-rain-toggle")
+        relay.close()
+
