@@ -60,7 +60,8 @@ class WebsocketInterface(SingletonBase):
                 data = self.ws.recv()
                 if data:  # Only process if data is available
                     frame = FrameParser(data).parse()
-                    print(f"Recv: {frame.action} from {frame.metadata.sender_id}")
+                    if App().DEBUG:
+                        print(f"[ws] Frame received:{frame}")
                     App().broadcast_frame(frame)
             except Exception as e:
                 print(f"An error occured while updating websocket: {e}")
