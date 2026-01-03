@@ -20,7 +20,7 @@ class Engine:
         self.is_on = False
 
     def on_frame_received(self, frame: Frame):
-        if frame.action is not self.action:
+        if frame.action != self.action:
             return
 
         if self.on_payload_received_callback is not None:
