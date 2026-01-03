@@ -70,7 +70,7 @@ class LedStrip:
         return i
 
     def on_frame_received(self, frame: Frame):
-        if self.action is not frame.action:
+        if self.action != frame.action:
             return
 
         if self.on_payload_received_callback is not None:
