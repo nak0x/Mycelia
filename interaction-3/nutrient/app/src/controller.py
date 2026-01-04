@@ -9,20 +9,20 @@ class MainController(Controller):
     animation_duration = 5000  # ms
 
     def setup(self):
-        # self.led_strip = LedStrip(GPIO.GPIO27, 100)
-        # self.pixels = self.led_strip.pixels
+        self.led_strip = LedStrip(GPIO.GPIO27, 200)
+        self.pixels = self.led_strip.pixels
         
         self.reverse_led_strip = LedStrip(GPIO.GPIO26, 100)
         self.reverse_pixels = self.reverse_led_strip.pixels
 
-        # self.flow = NutrientFlow(
-        #     num_pixels=len(self.pixels),
-        #     color=(0, 255, 0),
-        #     wave_len=20,
-        #     gap_len=15,
-        #     speed=50.0,
-        #     fade=True
-        # )
+        self.flow = NutrientFlow(
+            num_pixels=len(self.pixels),
+            color=(0, 255, 0),
+            wave_len=20,
+            gap_len=15,
+            speed=50.0,
+            fade=True
+        )
 
         self.reverse_flow = NutrientFlow(
             num_pixels=len(self.reverse_pixels),
@@ -44,10 +44,10 @@ class MainController(Controller):
             self.handle_animation()
 
     def handle_animation(self):
-        # self.flow.step(self.pixels)
+        self.flow.step(self.pixels)
         self.reverse_flow.step(self.reverse_pixels)
 
-        # self.led_strip.display()
+        self.led_strip.display()
         self.reverse_led_strip.display()
 
     def start_animation(self):
@@ -56,21 +56,16 @@ class MainController(Controller):
 
     def stop_animation(self):
         self.animated = False
-        # optionnel: clear strips à la fin
-        # for i in range(len(self.pixels)):
-        #     self.pixels[i] = (0, 0, 0)
-        # self.led_strip.display()
 
-        for i in range(len(self.reverse_pixels)):
-            self.reverse_pixels[i] = (0, 0, 0)
-        self.reverse_led_strip.display()
+        # Clear les leds
+        self.led_strip.clear()
+        self.reverse_led_strip.clear()
 
-        WebsocketInterface().send_value("shroom_growing", True, "bool", "ESP32-030301")
+        WebsocketInterface().send_value("shroom_growing", True)
 
     def on_frame_received(self, frame):
-        for payload in frame.payload:
-            if payload.slug == "nutrient_animated" and payload.datatype == "bool":
-                if payload.value:
-                    self.start_animation()
-                else:
-                    self.stop_animation()
+        if frame.action == "nutrient_animated":
+            if frame.value:
+                self.start_animation()
+            else:
+                self.stop_animation()
