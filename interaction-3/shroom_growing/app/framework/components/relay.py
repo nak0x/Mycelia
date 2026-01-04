@@ -5,9 +5,9 @@ from framework.utils.frames.frame import Frame
 class Relay:
     is_open = False
 
-    def __init__(self, pin, slug = None, on_payload_received = None):
+    def __init__(self, pin, action = None, on_payload_received = None):
         self.pin = Pin(pin, Pin.OUT)
-        self.slug = slug
+        self.action = action
         self.on_payload_received_callback = on_payload_received
         App().on_frame_received.append(self.on_frame_received)
 
@@ -26,14 +26,11 @@ class Relay:
             self.open()
 
     def on_frame_received(self, frame: Frame):
-        if self.slug is None:
+        print(f"Relay : {frame} \n action: {self.action}")
+        if self.action != frame.action:
             return
-        
-        for payload in frame.payload:
-            if payload.slug == self.slug:
-                if self.on_payload_received_callback is not None:
-                    self.on_payload_received_callback(self, payload)
-                elif payload.datatype == "bool":
-                    self.open() if payload.value else self.close()
 
-    
+        if self.on_payload_received_callback is not None:
+            self.on_payload_received_callback(self, frame.value)
+        elif isinstance(frame.value, bool):
+            self.close() if frame.value else self.open()
