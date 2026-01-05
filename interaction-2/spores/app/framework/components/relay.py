@@ -12,11 +12,11 @@ class Relay:
         App().on_frame_received.append(self.on_frame_received)
 
     def open(self):
-        self.pin.value(1)
+        self.pin.value(0)
         self.is_open = True
 
     def close(self):
-        self.pin.value(0)
+        self.pin.value(1)
         self.is_open = False
 
     def toggle(self):
@@ -26,14 +26,11 @@ class Relay:
             self.open()
 
     def on_frame_received(self, frame: Frame):
-        if self.action is None:
+        print(f"Relay : {frame} \n action: {self.action}")
+        if self.action != frame.action:
             return
-        
-        for payload in frame.payload:
-            if payload.action == self.action:
-                if self.on_payload_received_callback is not None:
-                    self.on_payload_received_callback(self, payload)
-                elif payload.datatype == "bool":
-                    self.open() if payload.value else self.close()
 
-    
+        if self.on_payload_received_callback is not None:
+            self.on_payload_received_callback(self, frame.value)
+        elif isinstance(frame.value, bool):
+            self.close() if frame.value else self.open()
