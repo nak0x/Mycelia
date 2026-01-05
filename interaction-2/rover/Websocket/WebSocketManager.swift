@@ -142,16 +142,12 @@ class WebSocketManager {
         do {
             let frame = try JSONDecoder().decode(Frame.self, from: jsonData)
             
-            // Filtre : on ne traite que les frames destinées à nous
-            if frame.metadata.receiverId == deviceId {
-                addLog("✅ Frame valide reçue de \(frame.metadata.senderId)")
-                
-                // Appelle le callback sur le main thread
-                DispatchQueue.main.async {
-                    self.onFrameReceived?(frame)
-                }
-            } else {
-                addLog("⏭️ Frame ignorée (receiverId: \(frame.metadata.receiverId), deviceID: \(deviceId))")
+            // On broadcast tout ce qui arrive, plus de filtrage receiverId
+            addLog("✅ Frame reçue: \(frame.action) de \(frame.metadata.senderId)")
+            
+            // Appelle le callback sur le main thread
+            DispatchQueue.main.async {
+                self.onFrameReceived?(frame)
             }
         } catch {
             addLog("❌ Erreur de parsing: \(error.localizedDescription)")
@@ -178,24 +174,18 @@ class WebSocketManager {
             if let error = error {
                 self?.addLog("❌ Erreur d'envoi: \(error.localizedDescription)")
             } else {
-                self?.addLog("📤 Frame envoyée: \(frame.metadata.messageId)")
+                self?.addLog("📤 Frame envoyée: \(frame.action)")
             }
         }
     }
     
-    /// Envoie une commande simple (slug + valeur)
-    func sendCommand(slug: String, value: PayloadValue, receiverId: String) {
-        let datatype: String
-        switch value {
-            case .bool: datatype = "bool"
-            case .int: datatype = "int"
-            case .float: datatype = "float"
-            case .string: datatype = "string"
-            case .intArray: datatype = "iarray"
-        }
-        
-        let payload = Payload(datatype: datatype, value: value, slug: slug)
-        let frame = Frame(senderId: deviceId, receiverId: receiverId, payloads: [payload])
+    /// Envoie une commande simple
+    func sendCommand(action: String, value: FrameValue) {
+        let frame = Frame(
+            senderId: deviceId,
+            action: action,
+            value: value
+        )
         
         sendFrame(frame)
     }

@@ -28,17 +28,14 @@ class RobotWebSocketController {
     private func sendImpactFrame() {
         guard robot.isConnected else { return }
         
-        let payload = Payload.bool(true, slug: "sphero")
-        
         let frame = Frame(
             senderId: wsManager.deviceId,
-            receiverId: "SERVER-020201",
-            type: "ws-data",
-            payloads: [payload]
+            action: "02-sphero-impact",
+            value: .bool(true)
         )
         
         wsManager.sendFrame(frame)
-        print("💥 Impact envoyé via WebSocket (sphero: true)")
+        print("💥 Impact envoyé via WebSocket")
     }
     
     private func handleFrame(_ frame: Frame) {
@@ -46,39 +43,34 @@ class RobotWebSocketController {
             print("⚠️ Robot non connecté, commande ignorée")
             return
         }
-        for payload in frame.payload {
-            handlePayload(payload)
-        }
-    }
-    
-    private func handlePayload(_ payload: Payload) {
-        print("🎮 Commande reçue: \(payload.slug) = \(payload.value.anyValue)")
         
-        switch payload.slug {
+        print("🎮 Commande reçue: \(frame.action) = \(frame.value.anyValue)")
+        
+        switch frame.action {
             
         // ===== MOUVEMENTS =====
         case "forward":
-            if let params = payload.value.intArrayValue, !params.isEmpty {
+            if let params = frame.value.intArrayValue, !params.isEmpty {
                 let speed = params[0]
                 let duration = params.count > 1 ? params[1] : 1
                 robot.forward(speed: speed, durationS: duration)
             }
-            else if let speed = payload.intValue {
+            else if let speed = frame.value.intValue {
                 robot.forward(speed: speed, durationS: 1)
             }
             
         case "backward":
-            if let params = payload.value.intArrayValue, !params.isEmpty {
+            if let params = frame.value.intArrayValue, !params.isEmpty {
                 let speed = params[0]
                 let duration = params.count > 1 ? params[1] : 1
                 robot.backward(speed: speed, durationS: duration)
             }
-            else if let speed = payload.intValue {
+            else if let speed = frame.value.intValue {
                 robot.backward(speed: speed, durationS: 1)
             }
             
         case "turn":
-            if let degrees = payload.intValue {
+            if let degrees = frame.value.intValue {
                 robot.turn(degrees: degrees)
             }
             
@@ -86,13 +78,13 @@ class RobotWebSocketController {
             robot.stop()
             
         case "heading":
-            if let heading = payload.intValue {
+            if let heading = frame.value.intValue {
                 robot.heading = heading
             }
             
         // ===== LED =====
         case "led":
-            if let colorData = payload.stringValue {
+            if let colorData = frame.value.stringValue {
                 let components = colorData.split(separator: ",").compactMap { UInt8($0) }
                 if components.count == 3 {
                     let color = RobotColor(r: components[0], g: components[1], b: components[2])
@@ -107,27 +99,26 @@ class RobotWebSocketController {
         case "led-off":   robot.setMainLED(color: .off)
             
         default:
-            print("⚠️ Commande inconnue ou mal formatée: \(payload.slug)")
+            print("⚠️ Commande inconnue ou mal formatée: \(frame.action)")
         }
     }
     
     func sendRobotState() {
         guard robot.isConnected else { return }
         
-        let payloads: [Payload] = [
-            .bool(robot.isConnected, slug: "robot-connected"),
-            .int(robot.heading, slug: "robot-heading"),
-            .string(robot.batteryState.description, slug: "robot-battery"),
-            .float(Double(robot.lastSample.x), slug: "robot-x"),
-            .float(Double(robot.lastSample.y), slug: "robot-y"),
-            .float(Double(robot.lastSample.yaw), slug: "robot-yaw")
+        let stateDict: [String: FrameValue] = [
+            "robot-connected": .bool(robot.isConnected),
+            "robot-heading": .int(robot.heading),
+            "robot-battery": .string(robot.batteryState.description),
+            "robot-x": .float(Double(robot.lastSample.x)),
+            "robot-y": .float(Double(robot.lastSample.y)),
+            "robot-yaw": .float(Double(robot.lastSample.yaw))
         ]
         
         let frame = Frame(
             senderId: wsManager.deviceId,
-            receiverId: "SERVER",
-            type: "robot-state",
-            payloads: payloads
+            action: "robot-state",
+            value: .dictionary(stateDict)
         )
         
         wsManager.sendFrame(frame)
