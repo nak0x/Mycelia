@@ -30,6 +30,11 @@
         "type": "bool",
         "required": false,
         "default": true
+      },
+      "debug": {
+        "type": "bool",
+        "required": false,
+        "default": false
       }
     }
   },

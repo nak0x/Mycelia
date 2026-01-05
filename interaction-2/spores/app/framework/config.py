@@ -14,8 +14,7 @@ class Config:
     def setup_pins(self):
         self.pins["builtin-led"] = Pin(GPIO.LED, Pin.OUT, Pin.PULL_DOWN)
         self.pins["led"] = Pin(GPIO.GPIO4, Pin.OUT, Pin.PULL_DOWN)
-        self.pins["fan_pwm"] = 18
-        self.pins["fan_power"] = 19
+        self.pins["fan_power"] = GPIO.GPIO19
 
     def load_from_file(self, filepath):
         print("Trying to load config ...")
@@ -38,7 +37,7 @@ class Config:
         self._data["debug"] = data["debug"]
         self._data["slowed"] = data["slowed"]
         self._data["wifi"] = WifiConfig(data["wifi"]["SSID"], data["wifi"]["password"], data["wifi"]["timeout"])
-        self._data["websocket"] = WebsocketConfig(data["websocket"]["server"], data["websocket"]["reconnect"])
+        self._data["websocket"] = WebsocketConfig(data["websocket"]["server"], data["websocket"]["reconnect"], data["websocket"]["debug"])
         
         # Debug: Print all config data
         print("=== Config Data (Debug) ===")
@@ -54,6 +53,7 @@ class Config:
                 elif isinstance(value, WebsocketConfig):
                     print(f"    server: {value.server}")
                     print(f"    reconnect: {value.reconnect}")
+                    print(f"    debug: {value.debug}")
             else:
                 print(f"  {key}: {value}")
         print("===========================")
@@ -97,7 +97,9 @@ class WifiConfig:
 class WebsocketConfig:
     server = ""
     reconnect = True
+    debug = False
 
-    def __init__(self, server, reconnect):
+    def __init__(self, server, reconnect, debug):
         self.server = server
         self.reconnect = reconnect
+        self.debug = debug

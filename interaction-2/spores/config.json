@@ -1,13 +1,14 @@
 {
     "device_id": "ESP32-020101",
     "wifi": {
-        "SSID": "Freebox-MARBUIS",
-        "password": "3004197505102004",
+        "SSID": "Cudy-F00C",
+        "password": "70897678",
         "timeout": 2000
     },
     "websocket": {
-        "server": "ws://192.168.10.230:8001/esp",
-        "reconnect": true
+        "server": "ws://mycelia.kibishi47.ovh/ws",
+        "reconnect": true,
+        "debug": false
     },
     "debug": false,
     "slowed": false
