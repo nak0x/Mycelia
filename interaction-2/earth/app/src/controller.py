@@ -3,7 +3,7 @@ from framework.utils.frames.frame import Frame
 from framework.components.button import Button
 from framework.utils.ws.interface import WebsocketInterface
 
-class ExampleController(Controller):
+class EarthController(Controller):
 
     def setup(self):
         print("Début de l'initialisation...")
@@ -24,10 +24,8 @@ class ExampleController(Controller):
         # N'envoyer que si l'état a changé
         if self.balance_status != self.last_status:
             WebsocketInterface().send_value(
-                slug="balance",
+                action="02-balance-toggle",
                 value=self.balance_status,
-                type="boolean",
-                receiver_id="SERVER-020201"
             )
 
             self.last_status = self.balance_status
