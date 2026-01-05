@@ -98,6 +98,15 @@ class RobotWebSocketController {
         case "led-white": robot.setMainLED(color: .white)
         case "led-off":   robot.setMainLED(color: .off)
             
+        // ===== INTERACTION 2 SCENARIO =====
+        case "02-rover-toggle", "01-interaction-done":
+            if wsManager.deviceId == "IOS-020101" {
+                print("🚀 Activation du Rover (Scenario Interaction 2)")
+                robot.forward(speed: 100, durationS: 10)
+            } else {
+                print("⚠️ Commande ignorée pour cet ID: \(wsManager.deviceId)")
+            }
+            
         default:
             print("⚠️ Commande inconnue ou mal formatée: \(frame.action)")
         }
