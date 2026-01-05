@@ -11,18 +11,27 @@ class FanController(Controller):
 
         self.timer = Timer(5000, self.turn_off_fan)
 
+        # Relay initialized with action=None so it ignores frames by default
         self.fan = Relay(
             pin_power,
-            "02-fan-toggle",
+            action=None, 
             on_payload_received=self.on_fan_command
         )
         self.fan.open()
 
+        # Register manual dispatcher
+        App().on_frame_received.append(self.dispatch_frame)
+
+    def dispatch_frame(self, frame):
+        if frame.action == "02-fan-toggle":
+            self.on_fan_command(self.fan, frame.value)
+        elif frame.action == "01-interaction-done":
+            self.on_fan_command(self.fan, True)
+
     def on_fan_command(self, relay: Relay, value):
-        # Value is expected to be a bool (True = ON) based on Relay logic
         if value:
             print("Fan ON (Timer started)")
-            relay.close() # Active low typically? Wait, Relay.py says close() -> pin(1). Let's assume close() is ON state requested.
+            relay.close()
             self.timer.restart()
         else:
             print("Fan OFF (Timer stopped)")
