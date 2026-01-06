@@ -547,3 +547,95 @@ Tips:
 | Current encoder position (in detents)
 |===
 
+---
+
+== DHTSensor (DHT22)
+
+The `DHTSensor` component reads temperature and humidity from a DHT22 (AM2302) sensor module.
+It periodically polls the sensor and dispatches callbacks through the application update loop
+(`App().update`).
+
+=== Wiring
+
+DHT22 module (3 pins), **pins on the left**, sensor facing you:
+
+[source,text]
+----
+┌───────────────┐
+│   DHT22       │
+│               │
+│  [S]  SIGNAL  │  ← DATA
+│  [+]  5V/3.3V │  ← VCC
+│  [-]  GND     │  ← GND
+└───────────────┘
+----
+
+|===
+| ESP32 Pin | DHT22 Module Pin
+
+| GPIO (ex: GPIO4)
+| SIGNAL (S)
+
+| 3.3V
+| VCC (+)
+
+| GND
+| GND (-)
+|===
+
+IMPORTANT:
+* Always power the DHT22 module with **3.3V** when using an ESP32.
+* Ensure common ground between ESP32 and the sensor.
+* Do not read the sensor more than once every ~2 seconds.
+
+=== Usage
+
+[,python]
+----
+from src.components.dht_sensor import DHTSensor
+from src.utils.gpio import GPIO
+
+sensor = DHTSensor(
+    pin=GPIO.GPIO4,
+    onChange=lambda t, h: print("T:", t, "H:", h),
+    onTemperatureChange=lambda t: print("Temperature:", t),
+    onHumidityChange=lambda h: print("Humidity:", h)
+)
+----
+
+=== Behavior
+
+The sensor is polled periodically (default ~2.5s).
+Callbacks are triggered only when values change.
+
+|===
+| Event | Description
+
+| `onTemperatureChange`
+| Called when the temperature value changes
+
+| `onHumidityChange`
+| Called when the humidity value changes
+
+| `onChange`
+| Called when either temperature or humidity changes
+|===
+
+=== Notes
+
+* Temperature is expressed in **°C**
+* Humidity is expressed in **%**
+* Internally uses the MicroPython `dht.DHT22` driver
+* Errors (timeouts) are silently ignored and retried on next update
+
+=== State
+
+|===
+| Property | Description
+
+| `temperature`
+| Last measured temperature (°C)
+
+| `humidity`
+| Last measured humidity (%)
+|===

@@ -1,22 +1,26 @@
 from framework.controller import Controller
 from framework.utils.gpio import GPIO
-from framework.components.relay import Relay
+from framework.components.engine import Engine
+from framework.utils.timer import Timer
 
 class MainController(Controller):
-
+    animation_duration = 1000   # ms
+    
     def setup(self):
-        self.r1 = Relay(GPIO.GPIO27)
-        self.r2 = Relay(GPIO.GPIO26)
+        self.engine = Engine(GPIO.GPIO27)
+        self.animation_timer = Timer(self.animation_duration, self.stop_animation)
+
+    def start_animation(self):
+        self.engine.on()
+        self.animation_timer.start()
+
+    def stop_animation(self):
+        self.engine.off()
 
     def on_frame_received(self, frame):
-        if frame.action == "3-engine-cw":
-            self.r1.open()
-            self.r2.close()
-        elif frame.action == "3-engine-ccw":
-            self.r1.close()
-            self.r2.open()
+        if frame.action == "3-engine-on":
+            self.engine.on()
         elif frame.action == "3-engine-off":
-            self.r1.close()
-            self.r2.close()
+            self.engine.off()
         elif frame.action == "3-start-animation":
-            pass
+            self.start_animation()
