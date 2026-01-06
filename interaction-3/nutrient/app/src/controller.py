@@ -34,8 +34,6 @@ class MainController(Controller):
             reverse=True
         )
 
-        self.animated = True
-
         # Timer qui stoppera l'animation après animation_duration
         self.animation_timer = Timer(self.animation_duration, self.stop_animation)
 
@@ -52,7 +50,7 @@ class MainController(Controller):
 
     def start_animation(self):
         self.animated = True
-        self.animation_timer.restart()
+        self.animation_timer.start()
 
     def stop_animation(self):
         self.animated = False
@@ -61,11 +59,16 @@ class MainController(Controller):
         self.led_strip.clear()
         self.reverse_led_strip.clear()
 
-        WebsocketInterface().send_value("shroom_growing", True)
+        WebsocketInterface().send_value("03-grow-shroom", None)
 
     def on_frame_received(self, frame):
-        if frame.action == "nutrient_animated":
-            if frame.value:
-                self.start_animation()
-            else:
-                self.stop_animation()
+        if frame.action == "03-nutrient-animate-on":
+            self.animated = True
+            
+        elif frame.action == "03-nutrient-animate-off":
+            self.animated = False
+            self.led_strip.clear()
+            self.reverse_led_strip.clear()
+
+        elif frame.action == "03-nutrient-start-animation":
+            self.start_animation()

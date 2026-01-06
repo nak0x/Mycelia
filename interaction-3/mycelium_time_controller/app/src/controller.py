@@ -8,5 +8,5 @@ class MainController(Controller):
         Encoder(pinA=GPIO.GPIO25, pinB=GPIO.GPIO26, onCw=self.increment_mycelium)
 
     def increment_mycelium(self):
-        print("Incrementing mycelium")
-        WebsocketInterface().send_value("mycelium_deployment", True, "bool", "ESP32-030102")
+        print("> grow mycelium")
+        WebsocketInterface().send_value("03-grow-mycelium", None)
