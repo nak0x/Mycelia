@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSocketAudio } from './hooks/useSocketAudio';
 
 function App() {
@@ -6,10 +6,42 @@ function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isUIHidden, setIsUIHidden] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const playTimeoutRef = useRef<number | null>(null);
 
   const handleStart = () => {
     setHasInteracted(true);
+    // Ensure video is paused at start
+    if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+    }
   };
+
+  useEffect(() => {
+    if (lastFrame?.action === '03-grow-mycelium') {
+        if (videoRef.current) {
+            // Clear any existing pause timeout to allow extending playback if triggers come fast
+            if (playTimeoutRef.current) {
+                clearTimeout(playTimeoutRef.current);
+            }
+
+            videoRef.current.play().catch(e => console.error("Video play failed", e));
+            
+            playTimeoutRef.current = setTimeout(() => {
+                if (videoRef.current) {
+                    videoRef.current.pause();
+                }
+            }, 400);
+        }
+    }
+    
+    return () => {
+        if (playTimeoutRef.current) {
+            clearTimeout(playTimeoutRef.current);
+        }
+    };
+  }, [lastFrame]);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black font-mono text-white selection:bg-white selection:text-black">
@@ -24,13 +56,12 @@ function App() {
 
       {/* Background Video */}
       <video
-        autoPlay
-        loop
+        ref={videoRef}
         muted
         playsInline
         className={`absolute top-0 left-0 w-full h-full object-cover z-0 transition-all duration-700 ${isUIHidden ? 'opacity-100 grayscale-0' : 'opacity-50 grayscale'}`}
       >
-        <source src="/background.mp4" type="video/mp4" />
+        <source src="/grow-mycelium.mp4" type="video/mp4" />
       </video>
 
       {/* Overlay Pattern - Hidden in fullscreen */}
