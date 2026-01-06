@@ -102,7 +102,7 @@ class RobotWebSocketController {
         case "02-rover-toggle", "01-interaction-done":
             if wsManager.deviceId == "IOS-020101" {
                 print("🚀 Activation du Rover (Scenario Interaction 2)")
-                robot.forward(speed: 100, durationS: 10)
+                robot.forward(speed: 230, durationS: 3)
             } else {
                 print("⚠️ Commande ignorée pour cet ID: \(wsManager.deviceId)")
             }

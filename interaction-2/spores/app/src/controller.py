@@ -9,7 +9,7 @@ class FanController(Controller):
         super().__init__()
         pin_power = App().config.pins["fan_power"]
 
-        self.timer = Timer(5000, self.turn_off_fan)
+        self.timer = Timer(15000, self.turn_off_fan)
 
         # Relay initialized with action=None so it ignores frames by default
         self.fan = Relay(
