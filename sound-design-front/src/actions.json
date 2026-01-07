@@ -9,6 +9,22 @@
             "type": "boolean"
         },
         {
+            "action": "02-sphero-impact",
+            "type": "boolean"
+        },
+        {
+            "action": "02-rover-toggle",
+            "type": "boolean"
+        },
+        {
+            "action": "02-balance-toggle",
+            "type": "boolean"
+        },
+        {
+            "action": "02-interaction-done",
+            "type": "boolean"
+        },
+        {
             "action": "03-grow-mycelium",
             "type": null
         },
