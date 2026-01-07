@@ -31,8 +31,6 @@ class WsHub:
         sent = 0
 
         for ws in clients:
-            if sender is not None and ws is sender:
-                continue
             if ws.closed:
                 dead.append(ws)
                 continue
