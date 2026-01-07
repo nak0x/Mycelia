@@ -2,7 +2,7 @@ from framework.app import App
 from framework.utils.wifi import WifiManager
 from framework.utils.integrity import run_integrity_checks
 from framework.utils.ws.interface import WebsocketInterface
-from src.controller import ExampleController
+from src.controller import MainController
 
 # Check that the esp32 don't have any problems
 run_integrity_checks()
@@ -15,7 +15,7 @@ wifi_manager.config(ssid=app.config.wifi.SSID, password=app.config.wifi.password
 
 ws_client = WebsocketInterface()
 
-controller = ExampleController()
+controller = MainController()
 
 # Run the app
 # Note that anything below this line won't be executed
