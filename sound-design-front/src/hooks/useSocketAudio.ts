@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Howl, Howler } from 'howler';
 import type { Frame } from '../types/frame';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 // On map les sons ici
 const SOUNDS: Record<string, string> = {
@@ -10,15 +11,10 @@ const SOUNDS: Record<string, string> = {
   'stop-sound': '',
 };
 
-export const useSocketAudio = (url: string) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [logs, setLogs] = useState<Frame[]>([]);
-  const [lastFrame, setLastFrame] = useState<Frame | null>(null);
-  
+export const useSocketAudio = () => {
+  const { isConnected, lastFrame, logs } = useWebSocket();
   const soundInstances = useRef<Record<string, Howl>>({});
-  const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-
+  
   // 1. Initialisation des sons
   useEffect(() => {
     Object.entries(SOUNDS).forEach(([action, src]) => {
@@ -32,47 +28,12 @@ export const useSocketAudio = (url: string) => {
     });
   }, []);
 
-  // 2. Gestion WebSocket
+  // 2. Gestion Playback via lastFrame du contexte
   useEffect(() => {
-    const connect = () => {
-      console.log('Connexion au WS...');
-      socketRef.current = new WebSocket(url);
-
-      socketRef.current.onopen = () => {
-        console.log('WS Connecté');
-        setIsConnected(true);
-      };
-
-      socketRef.current.onclose = () => {
-        console.log('WS Déconnecté, tentative de reconnexion dans 3s...');
-        setIsConnected(false);
-        reconnectTimeoutRef.current = setTimeout(connect, 3000); 
-      };
-
-      socketRef.current.onmessage = (event) => {
-        try {
-          const data: Frame = JSON.parse(event.data);
-          setLastFrame(data);
-          setLogs(prevLogs => [data, ...prevLogs].slice(0, 50)); // Garde les 50 derniers logs
-          handleAction(data);
-        } catch (e) {
-          console.error("Erreur parsing JSON", e);
-        }
-      };
-    };
-
-    connect();
-
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (socketRef.current) {
-        socketRef.current.onclose = null;
-        socketRef.current.close();
-      }
-    };
-  }, [url]);
+    if (lastFrame) {
+        handleAction(lastFrame);
+    }
+  }, [lastFrame]);
 
   // 3. Lancement des sons
   const handleAction = (frame: Frame) => {
@@ -94,8 +55,6 @@ export const useSocketAudio = (url: string) => {
 
   const [volume, setVolume] = useState(1.0);
   const [isMuted, setIsMuted] = useState(false);
-
-  // ... (previous code)
 
   // 4. Gestion Volume & Mute Global
   useEffect(() => {

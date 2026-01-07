@@ -1,0 +1,20 @@
+{
+    "actions": [
+        {
+            "action": "01-interaction-done",
+            "type": "boolean"
+        },
+        {
+            "action": "02-fan-toggle",
+            "type": "boolean"
+        },
+        {
+            "action": "03-grow-mycelium",
+            "type": null
+        },
+        {
+            "action": "03-nutrient-start-animation",
+            "type": null
+        }
+    ]
+}
