@@ -9,8 +9,11 @@
     { "method": "GET", "path": "/health", "controller": "app.http_controllers.core.CoreController", "action": "health" },
     { "method": "POST", "path": "/api/broadcast", "controller": "app.http_controllers.core.CoreController", "action": "broadcast" }
   ],
-  "ws_payload_routes": {
+  "ws_actions": {
     "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" },
+    "01-shroom-forest-lighten": { "controller": "app.ws_controllers.core.CoreController", "action": "on_shroom_forest_lighten" },
+    "01-wind-toggle": { "controller": "app.ws_controllers.core.CoreController", "action": "on_wind_toggle" },
+    "01-rain-toggle": { "controller": "app.ws_controllers.core.CoreController", "action": "on_rain_toggle" },
     "02-sphero-impact": { "controller": "app.ws_controllers.core.CoreController", "action": "on_sphero_impact" },
     "02-balance-toggle": { "controller": "app.ws_controllers.core.CoreController", "action": "on_balance_toggle" }
   }
