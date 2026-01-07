@@ -1,13 +1,14 @@
 {
-  "device_id": "ESP32-FF7700",
+  "device_id": "ESP32-010101",
   "wifi": {
     "SSID": "Cudy-F00C",
     "password": "70897678",
-    "timeout": 3000
+    "timeout": 5000
   },
   "websocket": {
-    "server": "ws://192.168.10.167:8000",
-    "reconnect": true
+    "server": "ws://mycelia.kibishi47.ovh/ws",
+    "reconnect": true,
+    "debug": false
   },
   "debug": true,
   "slowed": false
