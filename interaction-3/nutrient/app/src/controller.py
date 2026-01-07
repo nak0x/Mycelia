@@ -6,7 +6,8 @@ from src.nurtient_flow import NutrientFlow
 from framework.utils.ws.interface import WebsocketInterface
 
 class MainController(Controller):
-    animation_duration = 5000  # ms
+    animation_duration = 10000  # ms
+    animated = False
 
     def setup(self):
         self.led_strip = LedStrip(GPIO.GPIO27, 200)
@@ -57,7 +58,10 @@ class MainController(Controller):
 
         # Clear les leds
         self.led_strip.clear()
+        self.led_strip.display()
+        
         self.reverse_led_strip.clear()
+        self.reverse_led_strip.display()
 
         WebsocketInterface().send_value("03-grow-shroom", None)
 
