@@ -320,7 +320,7 @@ function AppContent() {
                 <div className="text-gray-600 italic p-4 text-center">No logs available</div>
             ) : (
                 <div className="space-y-2">
-                    {logs.map((log, index) => (
+                    {[...logs].sort((a, b) => b.metadata.timestamp - a.metadata.timestamp).map((log, index) => (
                         <div key={index} className="flex gap-4 border-b border-white/5 pb-2 hover:bg-white/5 transition-colors p-2">
                             <span className="text-gray-500 w-24 shrink-0">{new Date(log.metadata.timestamp * 1000).toLocaleTimeString()}</span>
                             <span className="text-green-400 w-32 shrink-0 font-bold">{log.action}</span>
@@ -356,7 +356,7 @@ function AppContent() {
 
 function App() {
     return (
-        <WebSocketProvider url="ws://192.168.10.163:8000/ws">
+        <WebSocketProvider url="ws://localhost:8000/ws">
             <AppContent />
         </WebSocketProvider>
     );

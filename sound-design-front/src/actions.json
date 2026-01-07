@@ -1,6 +1,18 @@
 {
     "actions": [
         {
+            "action": "01-shroom-forest-lighten",
+            "type": "boolean"
+        },
+        {
+            "action": "01-wind-toggle",
+            "type": "boolean"
+        },
+        {
+            "action": "01-rain-toggle",
+            "type": "boolean"
+        },
+        {
             "action": "01-interaction-done",
             "type": "boolean"
         },
@@ -9,11 +21,11 @@
             "type": "boolean"
         },
         {
-            "action": "02-sphero-impact",
+            "action": "02-rover-toggle",
             "type": "boolean"
         },
         {
-            "action": "02-rover-toggle",
+            "action": "02-sphero-impact",
             "type": "boolean"
         },
         {
