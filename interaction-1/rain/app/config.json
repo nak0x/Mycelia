@@ -1,15 +1,16 @@
 {
-  "device_id": "ESP32-010201",
+  "device_id": "ESP32-010101",
   "wifi": {
-    "SSID": "Livebox-8810_EXT",
-    "password": "ZiwfswvFwWTsqsV7q5",
+    "SSID": "Cudy-F00C",
+    "password": "70897678",
     "timeout": 5000
   },
   "websocket": {
-    "server": "ws://mycelia.kibishi47.ovh/ws",
+    "server": "ws://192.168.10.163:8000/ws",
     "reconnect": true,
-		"debug": false
+    "debug": false
   },
   "debug": true,
   "slowed": false
 }
+

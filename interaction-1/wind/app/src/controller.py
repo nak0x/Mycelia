@@ -6,4 +6,4 @@ class WindController(Controller):
     
     def __init__(self):
         super().__init__()
-        Relay(GPIO.GPIO14, "01-wind-toggle")
+        Relay(GPIO.GPIO27, "01-wind-toggle")

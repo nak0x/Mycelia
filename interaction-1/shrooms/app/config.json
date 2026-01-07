@@ -6,7 +6,7 @@
     "timeout": 5000
   },
   "websocket": {
-    "server": "ws://mycelia.kibishi47.ovh/ws",
+    "server": "ws://192.168.10.163:8000/ws",
     "reconnect": true,
     "debug": false
   },
