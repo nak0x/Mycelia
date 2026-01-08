@@ -9,7 +9,14 @@
     { "method": "GET", "path": "/health", "controller": "app.http_controllers.core.CoreController", "action": "health" },
     { "method": "POST", "path": "/api/broadcast", "controller": "app.http_controllers.core.CoreController", "action": "broadcast" }
   ],
-  "ws_payload_routes": {
-    "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" }
+  "ws_actions": {
+    "ping": { "controller": "app.ws_controllers.core.CoreController", "action": "on_ping" },
+    "00-new-connection": { "controller": "app.ws_controllers.core.CoreController", "action": "on_new_connection" },
+    "00-get-connected-clients": { "controller": "app.ws_controllers.core.CoreController", "action": "on_get_connected_clients" },
+    "01-shroom-forest-lighten": { "controller": "app.ws_controllers.first_interaction.CoreController", "action": "on_shroom_forest_lighten" },
+    "01-wind-toggle": { "controller": "app.ws_controllers.first_interaction.CoreController", "action": "on_wind_toggle" },
+    "01-rain-toggle": { "controller": "app.ws_controllers.first_interaction.CoreController", "action": "on_rain_toggle" },
+    "02-sphero-impact": { "controller": "app.ws_controllers.second_interaction.CoreController", "action": "on_sphero_impact" },
+    "02-balance-toggle": { "controller": "app.ws_controllers.second_interaction.CoreController", "action": "on_balance_toggle" }
   }
 }

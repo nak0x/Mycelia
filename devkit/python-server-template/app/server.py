@@ -14,7 +14,6 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
     ws = web.WebSocketResponse(heartbeat=30)
     await ws.prepare(request)
     await hub.add(ws)
-    print("New WS client.")
 
     try:
         async for msg in ws:
@@ -40,7 +39,7 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
 
             # Broadcast behavior:
             # - if you still want to broadcast everything, keep this:
-            await hub.broadcast(raw, sender=ws)
+            await hub.broadcast(raw)
 
             # OR if you want broadcast only when not handled:
             # if not handled:
@@ -48,7 +47,6 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
 
     finally:
         await hub.remove(ws)
-        print("WS client disconnected.")
 
     return ws
 
@@ -56,7 +54,7 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
 def build_app(cfg: AppConfig) -> web.Application:
     app = web.Application()
 
-    app["hub"] = WsHub()
+    app["hub"] = WsHub(app)
     app["server_id"] = cfg.server.id
     app["ws_dispatcher"] = WsActionDispatcher(app, cfg)
 
