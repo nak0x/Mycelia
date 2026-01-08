@@ -1,6 +1,7 @@
 from framework.app import App
-from dht import DHT11, DHT22
+from dht import DHT11
 from machine import Pin
+import time
 
 class DHTSensor:
     temperature = None
@@ -20,9 +21,7 @@ class DHTSensor:
             self.d.measure()
             t = self.d.temperature()
             h = self.d.humidity()
-            print(f"Temperature: {t}°C, Humidity: {h}%")
-        except Exception as e:
-            print(f"An error occured while updating DHT sensor: {e}")
+        except OSError:
             return
 
         temp_changed = (t != self.temperature)

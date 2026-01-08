@@ -18,12 +18,5 @@ class MainController(Controller):
         self.relay.close()
 
     def on_frame_received(self, frame):
-        if frame.action == "03-engine-on":
-            self.relay.open()
-            print("on")
-        elif frame.action == "03-engine-off":
-            self.relay.close()
-            print("off")
-        elif frame.action == "03-start-animation":
-            print("start")
+        if frame.action == "03-grow-shroom":
             self.start_animation()
