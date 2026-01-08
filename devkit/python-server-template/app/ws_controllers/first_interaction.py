@@ -1,4 +1,3 @@
-import json
 from aiohttp import web
 from app.ws_controllers.base import WsController
 from app.frames.frame import Frame
@@ -43,5 +42,4 @@ class CoreController(WsController):
             await asyncio.sleep(10)
             print("[WS] Interaction condition met! Broadcasting 01-interaction-done")
             # Broadcast to all clients
-            message = json.dumps(self.build_frame("01-interaction-done", True))
-            await self.hub.broadcast(message)
+            await self.hub.broadcast_action("01-interaction-done", True)
