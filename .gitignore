@@ -7,3 +7,5 @@ build/
 *.config.json
 config.json
 __pycache__/
+.vite/
+node_modules/
