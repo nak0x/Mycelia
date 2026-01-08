@@ -23,6 +23,21 @@ class RobotWebSocketController {
         robot.onImpact = { [weak self] in
             self?.sendImpactFrame()
         }
+
+        sendNewConnection()
+    }
+
+    private func sendNewConnection() {
+        guard robot.isConnected else { return }
+        
+        let frame = Frame(
+            senderId: wsManager.deviceId,
+            action: "00-new-connection",
+            value: nil
+        )
+        
+        wsManager.sendFrame(frame)
+        print("🚀 Connexion établie avec le server")
     }
     
     private func sendImpactFrame() {
