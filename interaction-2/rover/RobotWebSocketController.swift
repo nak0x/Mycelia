@@ -33,7 +33,7 @@ class RobotWebSocketController {
         let frame = Frame(
             senderId: wsManager.deviceId,
             action: "00-new-connection",
-            value: nil
+            value: .null
         )
         
         wsManager.sendFrame(frame)
