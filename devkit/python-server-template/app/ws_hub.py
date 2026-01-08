@@ -18,12 +18,7 @@ class WsHub:
             print(f"[WS] New client setted: {id}.")
             self._setted_clients[id] = ws
 
-        message = json.dumps(frame(
-            sender=self.app["server_id"],
-            action="00-new-client",
-            value=id
-        ))
-        await self.broadcast(message)
+        await self.broadcast_action("00-new-client", id)
 
     async def unset_client(self, ws: web.WebSocketResponse) -> Optional[str]:
         async with self._lock:
@@ -41,12 +36,8 @@ class WsHub:
 
     async def remove(self, ws: web.WebSocketResponse) -> None:
         client_id = await self.unset_client(ws)
-        message = json.dumps(frame(
-            sender=self.app["server_id"],
-            action="00-lost-client",
-            value=client_id
-        ))
-        await self.broadcast(message)
+        print(f"[WS] {client_id}")
+        await self.broadcast_action("00-lost-client", client_id)
 
         async with self._lock:
             if not client_id:
@@ -56,6 +47,31 @@ class WsHub:
     async def count(self) -> int:
         async with self._lock:
             return len(self._clients)
+        
+    async def send_json(self, ws: web.WebSocketResponse, obj: dict) -> None:
+        message = json.dumps(obj, ensure_ascii=False)
+        await self.send_message(ws, message)
+    
+    async def send_message(self, ws: web.WebSocketResponse, message: str, can_print: bool = True) -> None:
+        await ws.send_str(message)
+        if can_print:
+            print(f"> {message}")
+
+    async def send_action(self, ws: web.WebSocketResponse, action: str, value) -> None:
+        message = json.dumps(frame(
+            sender=self.app["server_id"],
+            action=action,
+            value=value
+        ))
+        await self.send_message(ws, message)
+
+    async def broadcast_action(self, action: str, value) -> int:
+        message = json.dumps(frame(
+            sender=self.app["server_id"],
+            action=action,
+            value=value
+        ))
+        return await self.broadcast(message)
 
     async def broadcast(self, message: str) -> int:
         async with self._lock:
@@ -72,7 +88,7 @@ class WsHub:
                 dead.append(ws)
                 continue
             try:
-                await ws.send_str(message)
+                await self.send_message(ws, message, sent == 0)
                 sent += 1
             except Exception:
                 dead.append(ws)
