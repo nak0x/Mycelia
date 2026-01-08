@@ -356,7 +356,7 @@ function AppContent() {
 
 function App() {
     return (
-        <WebSocketProvider url="ws://localhost:8000/ws">
+        <WebSocketProvider url="ws://192.168.10.163:8000/ws">
             <AppContent />
         </WebSocketProvider>
     );

@@ -1,6 +1,10 @@
 {
     "actions": [
         {
+            "action": "00-identifier",
+            "type": null
+        },
+        {
             "action": "01-shroom-forest-lighten",
             "type": "boolean"
         },
