@@ -5,5 +5,5 @@ from framework.components.relay import Relay
 class WaterController(Controller):
     
     def setup(self):
-        self.relay = Relay(27, "02-water-flow-toggle")
+        self.relay = Relay(27, "02-balance-toggle")
 

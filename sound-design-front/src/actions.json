@@ -5,6 +5,10 @@
             "type": null
         },
         {
+            "action": "stop-sound",
+            "type": null
+        },
+        {
             "action": "01-shroom-forest-lighten",
             "type": "boolean"
         },
@@ -34,6 +38,10 @@
         },
         {
             "action": "02-balance-toggle",
+            "type": "boolean"
+        },
+        {
+            "action": "02-water-flow-toggle",
             "type": "boolean"
         },
         {
