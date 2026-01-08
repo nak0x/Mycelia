@@ -26,9 +26,12 @@ class WebsocketInterface(SingletonBase):
             print(f"An error occured while connecting websocket: {e}")
             return
         self.CONNECTED = True
-        print("Websocket connected")
+        print("Websocket connected - sending auth frame ...")
+        self.send_value("00-new-connection")
+        print("Auth frame sent")
 
-    def send_value(self, action: str, value: any):
+
+    def send_value(self, action: str, value: any=None):
         frame = Frame(
             metadata={
                 "senderId": App().config.device_id,
