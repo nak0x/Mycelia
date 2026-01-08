@@ -3,17 +3,18 @@ from framework.app import App
 from framework.utils.frames.frame import Frame
 from framework.utils.ws.interface import WebsocketInterface
 
-class LightResistor:
+class LedResistor:
 
-    def __init__(self, pin, callback=None, name="Light resistor"):
-        self.adc = ADC(Pin(pin))
+    def __init__(self, pin, threshold, target):
+        self.adc = Pin(pin, Pin.OUT, Pin.PULL_DOWN)
         self.adc.atten(ADC.ATTN_11DB)
         self.adc.width(ADC.WIDTH_12BIT)
-        self.callback = callback
-        self.name = name
+        self.target = target
+        self.threshold = threshold
         App().update.append(self.update)
 
     def update(self):
         value = self.adc.read()
-        if self.callback is not None:
-            self.callback(value)
+        if App().config.debug:
+            print(f"LIGHT: {value}")
+        WebsocketInterface().send_value(self.slug, value, "int", self.target)

@@ -38,6 +38,9 @@ class Microphone:
 
         t = time.ticks_ms()
 
+        if App().config.debug:
+            print(f"Microphone value: {int(env)}")
+
         if time.ticks_diff(t, self.cooldown_until) < 0:
             return
 
@@ -47,8 +50,12 @@ class Microphone:
             elif time.ticks_diff(t, self.above_since) >= self.hold_ms:
                 self.blow_conter += 1
                 if self.blow_conter >= self.blow_limit:
+                    print("BLOW detected", "env=", int(env))
                     self.blow_callback()
                 self.cooldown_until = time.ticks_add(t, self.cooldown_ms)
                 self.above_since = None
         else:
             self.above_since = None
+
+    def now_ms(self):
+        return 
