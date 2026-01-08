@@ -5,9 +5,15 @@ import { useWebSocket } from '../contexts/WebSocketContext';
 
 // On map les sons ici
 const SOUNDS: Record<string, string> = {
-  '01-interaction-done': '/sounds/01-interaction-done.mp3',
-  '02-interaction-done': '/sounds/02-interaction-done.mp3',
   'background': '/sounds/background.mp3',
+  '01-rain-toggle': '/sounds/01-rain-toggle.mp3',
+  '01-shroom-forest-lighten': '/sounds/01-shroom-forest-lighten.mp3',
+  '01-wind-toggle': '/sounds/01-wind-toggle.mp3',
+  '03-grow-mycelium': '/sounds/03-grow-mycelium.mp3',
+  '03-grow-shroom': '/sounds/03-grow-shroom.mp3',
+  '03-nutrient-start-animation': '/sounds/03-nutrient-start-animation.mp3',
+  '03-interaction-done': '/sounds/03-interaction-done.mp3',
+  '03-interaction-done-background': '/sounds/03-interaction-done-background.mp3',
   'stop-sound': '',
 };
 
@@ -46,7 +52,7 @@ export const useSocketAudio = () => {
 
     const sound = soundInstances.current[frame.action];
     if (sound) {
-      if (frame.value === true) {
+      if (frame.value === true || frame.value === null) {
           console.log(`Lancement du son: ${frame.action}`);
           sound.play();
       }

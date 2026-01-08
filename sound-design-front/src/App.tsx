@@ -68,30 +68,24 @@ function AppContent() {
                 }
             }, videoPlayTime);
         }
-    } else if (lastFrame.action === '00-identifier') {
+    } else if (lastFrame.action === 'connected-clients') {
         if (Array.isArray(lastFrame.value)) {
             setClients(lastFrame.value as unknown as Client[]);
         }
     } else if (lastFrame.action === '00-new-client') {
-        // Payload expected: { id: "client-id" }
-        const payload = lastFrame.value as { id: string };
-        if (payload && payload.id) {
+        if (lastFrame.value) {
             setClients(prev => {
-                const exists = prev.find(c => c.clientId === payload.id);
+                const exists = prev.find(c => c.clientId === lastFrame.value);
                 if (exists) {
-                    // Update existing client to connected
-                    return prev.map(c => c.clientId === payload.id ? { ...c, isConnected: true } : c);
+                    return prev.map(c => c.clientId === lastFrame.value ? { ...c, isConnected: true } : c);
                 } else {
-                    // Add new client
-                    return [...prev, { clientId: payload.id, isConnected: true }];
+                    return [...prev, { clientId: lastFrame.value, isConnected: true }];
                 }
             });
         }
     } else if (lastFrame.action === '00-lost-client') {
-        // Payload expected: { id: "client-id" }
-        const payload = lastFrame.value as { id: string };
-        if (payload && payload.id) {
-            setClients(prev => prev.map(c => c.clientId === payload.id ? { ...c, isConnected: false } : c));
+        if (lastFrame.value) {
+            setClients(prev => prev.map(c => c.clientId === lastFrame.value ? { ...c, isConnected: false } : c));
         }
     }
     

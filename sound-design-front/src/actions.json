@@ -1,7 +1,7 @@
 {
     "actions": [
         {
-            "action": "00-identifier",
+            "action": "00-get-connected-clients",
             "type": null
         },
         {
@@ -46,6 +46,10 @@
         },
         {
             "action": "03-nutrient-start-animation",
+            "type": null
+        },
+        {
+            "action": "03-grow-shroom",
             "type": null
         }
     ]

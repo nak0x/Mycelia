@@ -10,11 +10,6 @@ interface CommandsDrawerProps {
     handleValueSend: (value: boolean | null) => void;
 }
 
-interface ActionDef {
-    action: string;
-    type: 'boolean' | null;
-}
-
 export function CommandsDrawer({ isOpen, setIsCommandsOpen, isUIHidden, selectedAction, setSelectedAction, handleActionClick, handleValueSend }: CommandsDrawerProps) {
     return (
         <div 
